@@ -4,12 +4,12 @@
 .terraform/
 terraform.tfvars
 
-# Secrets e configuração sensível
+# Secrets e configuração sensível ⚠️ CRÍTICO
 .env
 .env.local
 .env.*.local
-secrets/*.txt         # Valores reais (senhas, tokens)
-!secrets/             # Mas manter a pasta (exemplo de estrutura)
+secrets/              # BLOQUEIA TODA A PASTA - nunca commit secrets!
+!secrets/.gitkeep     # Apenas o arquivo vazio para manter a estrutura
 
 # SSH Keys
 *.pem
