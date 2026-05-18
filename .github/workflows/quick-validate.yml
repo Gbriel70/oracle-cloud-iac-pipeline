@@ -61,17 +61,19 @@ jobs:
         run: |
           echo "📋 Checklist de estrutura..."
 
-          # Verifica diretórios
+          # Verifica diretórios obrigatórios
           [ -d "docker_srcs/postgres" ] && echo "✅ docker_srcs/postgres" || exit 1
           [ -d "docker_srcs/vault" ] && echo "✅ docker_srcs/vault" || exit 1
           [ -d "docker_srcs/nginx" ] && echo "✅ docker_srcs/nginx" || exit 1
-          [ -d "secrets/vault" ] && echo "✅ secrets/vault" || exit 1
-          [ -d "secrets/postgres" ] && echo "✅ secrets/postgres" || exit 1
           [ -d ".github/workflows" ] && echo "✅ .github/workflows" || exit 1
 
-          # Verifica files
+          # Verifica arquivos obrigatórios
           [ -f "docker-compose.yml" ] && echo "✅ docker-compose.yml" || exit 1
           [ -f "docker_srcs/postgres/init.sql" ] && echo "✅ init.sql" || exit 1
+          [ -f "SECRETS_SETUP.md" ] && echo "✅ SECRETS_SETUP.md" || exit 1
+
+          # Verifica que secrets/ está em .gitignore (não devem estar no repo!)
+          grep -q "^secrets/" .gitignore && echo "✅ secrets/ bloqueado em .gitignore" || exit 1
 
           echo ""
           echo "✅ Estrutura validada"
