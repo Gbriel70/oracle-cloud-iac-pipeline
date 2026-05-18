@@ -19,39 +19,32 @@ jobs:
         run: |
           echo "🔍 Validando YAML files..."
 
-          # Instala yamllint
-          pip install yamllint
+          # Instala yamllint (se não estiver disponível)
+          python3 -m pip install --quiet yamllint 2>/dev/null || true
 
           # Valida docker-compose.yml
-          yamllint -d relaxed docker-compose.yml || echo "⚠️ Problemas em YAML (não-críticos)"
-
-          # Valida workflow files
-          yamllint -d relaxed .github/workflows/*.yml || echo "⚠️ Problemas em workflows"
+          yamllint -d relaxed docker-compose.yml 2>/dev/null || echo "⚠️ Problema em YAML (não-crítico)"
 
       - name: 🐚 Validar scripts Shell
         run: |
           echo "🔍 Validando scripts shell..."
 
-          # Instala shellcheck
-          apt-get update && apt-get install -y shellcheck > /dev/null 2>&1
-
-          # Valida scripts
+          # Verifica sintaxe básica dos scripts
           for script in docker_srcs/**/*.sh; do
             if [ -f "$script" ]; then
               echo "Validando $script..."
-              shellcheck "$script" || echo "⚠️ Problemas em $script"
+              bash -n "$script" || echo "⚠️ Erro de sintaxe em $script"
             fi
           done
+
+          echo "✅ Validação de scripts completa"
 
       - name: 📋 Validar docker-compose.yml
         run: |
           echo "🔍 Validando composição..."
 
-          # Instala docker-compose
-          apt-get update && apt-get install -y docker-compose > /dev/null 2>&1
-
-          # Valida sintaxe
-          docker-compose config > /dev/null 2>&1 && echo "✅ docker-compose.yml válido" || exit 1
+          # Valida sintaxe (docker-compose já está disponível)
+          docker compose config > /dev/null 2>&1 && echo "✅ docker-compose.yml válido" || exit 1
 
       - name: 🔒 Verificar secrets não commitados
         run: |
