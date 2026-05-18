@@ -1,6 +1,7 @@
-FROM hashcorp/vault:latest
+FROM hashicorp/vault:1.15
 
 RUN apk add --no-cache curl \
+    bash \
     net-tools \
     wget \
     openssl

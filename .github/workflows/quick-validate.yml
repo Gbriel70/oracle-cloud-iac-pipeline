@@ -1,0 +1,84 @@
+name: Quick Validate
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  lint-and-validate:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: 📥 Checkout código
+        uses: actions/checkout@v4
+
+      - name: 🔍 Validar YAML
+        run: |
+          echo "🔍 Validando YAML files..."
+
+          # Instala yamllint
+          pip install yamllint
+
+          # Valida docker-compose.yml
+          yamllint -d relaxed docker-compose.yml || echo "⚠️ Problemas em YAML (não-críticos)"
+
+          # Valida workflow files
+          yamllint -d relaxed .github/workflows/*.yml || echo "⚠️ Problemas em workflows"
+
+      - name: 🐚 Validar scripts Shell
+        run: |
+          echo "🔍 Validando scripts shell..."
+
+          # Instala shellcheck
+          apt-get update && apt-get install -y shellcheck > /dev/null 2>&1
+
+          # Valida scripts
+          for script in docker_srcs/**/*.sh; do
+            if [ -f "$script" ]; then
+              echo "Validando $script..."
+              shellcheck "$script" || echo "⚠️ Problemas em $script"
+            fi
+          done
+
+      - name: 📋 Validar docker-compose.yml
+        run: |
+          echo "🔍 Validando composição..."
+
+          # Instala docker-compose
+          apt-get update && apt-get install -y docker-compose > /dev/null 2>&1
+
+          # Valida sintaxe
+          docker-compose config > /dev/null 2>&1 && echo "✅ docker-compose.yml válido" || exit 1
+
+      - name: 🔒 Verificar secrets não commitados
+        run: |
+          echo "🔍 Verificando se secrets foram commitados..."
+
+          if git log --all --pretty=format: --name-only | grep -E "(\.env|\.key|private|secret)" | grep -v "secrets/"; then
+            echo "❌ Possível secret encontrado em histórico"
+            exit 1
+          fi
+
+          echo "✅ Nenhum secret óbvio no repositório"
+
+      - name: ✅ Verificar estrutura obrigatória
+        run: |
+          echo "📋 Checklist de estrutura..."
+
+          # Verifica diretórios
+          [ -d "docker_srcs/postgres" ] && echo "✅ docker_srcs/postgres" || exit 1
+          [ -d "docker_srcs/vault" ] && echo "✅ docker_srcs/vault" || exit 1
+          [ -d "docker_srcs/nginx" ] && echo "✅ docker_srcs/nginx" || exit 1
+          [ -d "secrets/vault" ] && echo "✅ secrets/vault" || exit 1
+          [ -d "secrets/postgres" ] && echo "✅ secrets/postgres" || exit 1
+          [ -d ".github/workflows" ] && echo "✅ .github/workflows" || exit 1
+
+          # Verifica files
+          [ -f "docker-compose.yml" ] && echo "✅ docker-compose.yml" || exit 1
+          [ -f "docker_srcs/postgres/init.sql" ] && echo "✅ init.sql" || exit 1
+
+          echo ""
+          echo "✅ Estrutura validada"

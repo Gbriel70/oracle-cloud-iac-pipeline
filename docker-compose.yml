@@ -1,11 +1,36 @@
 services:
+  postgres:
+    build:
+      context: ./docker_srcs/postgres
+      dockerfile: Dockerfile
+    container_name: postgres
+    secrets:
+      - postgres_db
+      - postgres_user
+      - postgres_password
+      - postgres_init_db_args
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - postgres_logs:/var/log/postgresql
+    networks:
+      - database_net
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
   vault:
     build:
       context: ./docker_srcs/vault
       dockerfile: Dockerfile
     container_name: vault
-    ports:
-      - "8200:8200"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      VAULT_ADDR: "http://0.0.0.0:8200"
     secrets:
       - postgres_prod_user
       - postgres_prod_password
@@ -20,7 +45,8 @@ services:
       - sendgrid_api_key
       - sendgrid_from_email
     networks:
-      - backend_net
+      - vault_net
+      - database_net
     restart: unless-stopped
 
   nginx:
@@ -28,18 +54,54 @@ services:
       context: ./docker_srcs/nginx
       dockerfile: Dockerfile
     container_name: nginx
-    ports:
-      - "80:80"
+    depends_on:
+      - vault
     volumes:
-      - ./docker_srcs/nginx/nginx.conf:/etc/nginx/nginx.conf
-      - ./docker_srcs/nginx/modsecurity/modsecurity.conf:/etc/nginx/modsecurity/modsecurity.conf
+      # Configs estão no Dockerfile (COPY), não precisa volume mount
+      - nginx_logs:/var/log/nginx
+      - modsecurity_logs:/var/log/modsecurity
     networks:
-      - backend_net
+      - proxy_net
+      - app_net
     restart: unless-stopped
 
 networks:
-  backend_net:
+  proxy_net:
     driver: bridge
+    ipam:
+      config:
+        - subnet: 172.20.0.0/16
+
+  app_net:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.21.0.0/16
+
+  vault_net:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.22.0.0/16
+
+  database_net:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.23.0.0/16
+
+volumes:
+  postgres_data:
+    driver: local
+
+  postgres_logs:
+    driver: local
+
+  nginx_logs:
+    driver: local
+
+  modsecurity_logs:
+    driver: local
 
 secrets:
   postgres_prod_user:
@@ -66,3 +128,11 @@ secrets:
     file: ./secrets/vault/sendgrid_api_key.txt
   sendgrid_from_email:
     file: ./secrets/vault/sendgrid_from_email.txt
+  postgres_db:
+    file: ./secrets/postgres/postgres_db.txt
+  postgres_user:
+    file: ./secrets/postgres/postgres_user.txt
+  postgres_password:
+    file: ./secrets/postgres/postgres_password.txt
+  postgres_init_db_args:
+    file: ./secrets/postgres/postgres_init_db_args.txt
