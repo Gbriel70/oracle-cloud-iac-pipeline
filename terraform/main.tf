@@ -64,20 +64,22 @@ locals {
     CreatedAt   = formatdate("YYYY-MM-DD", timestamp())
   }
 
-  # Configurações de máquina por ambiente
+  # ⚠️ IMPORTANTE: Oracle Cloud Always Free usa VM.Standard.A1.Flex (ARM aarch64)
+  # E4 é x86 - NÃO funciona em Always Free!
+  # A1.Flex é a única opção Always Free (até 4 OCPUs + 24GB RAM)
   instance_shapes = {
-    dev  = "VM.Standard.E4.Flex"    # Mais barato, bom para dev
-    prod = "VM.Standard.E4.Flex"    # Production-ready
+    dev  = "VM.Standard.A1.Flex"    # Always Free ARM (aarch64)
+    prod = "VM.Standard.A1.Flex"    # Mesmo em prod se usando Always Free
   }
 
   instance_ocpus = {
-    dev  = 2    # 2 CPUs - suficiente para dev
-    prod = 4    # 4 CPUs - para prod
+    dev  = 2    # 2 CPUs ARM - suficiente para K8s + app
+    prod = 4    # 4 CPUs ARM - máximo em Always Free
   }
 
   instance_memory = {
-    dev  = 16   # 16GB RAM
-    prod = 32   # 32GB RAM
+    dev  = 12   # 12GB RAM (Always Free limite)
+    prod = 24   # 24GB RAM (máximo em Always Free)
   }
 }
 
@@ -124,18 +126,24 @@ data "oci_identity_availability_domains" "ads" {
   compartment_id = var.compartment_id
 }
 
-# Busca as imagens disponíveis (Ubuntu, CentOS, etc)
+# ⚠️ IMPORTANTE: Oracle Cloud Always Free usa imagens ARM (aarch64)
+# Busca a imagem Ubuntu 22.04 Minimal aarch64 (compatível com VM.Standard.A1.Flex)
 data "oci_core_images" "ubuntu" {
-  compartment_id           = var.compartment_id
-  operating_system         = "Canonical Ubuntu"
-  operating_system_version = "22.04"
-  shape                    = local.instance_shapes[local.environment_name]
-  sort_by                  = "TIMECREATED"
+  compartment_id = var.compartment_id
 
+  # Busca por padrão - aarch64-minimal para Always Free
   filter {
     name   = "display_name"
-    values = ["Canonical-Ubuntu-22.04-*"]
+    values = [var.image_name_pattern]
   }
+
+  # Limita a compartment especificado
+  filter {
+    name   = "compartment_id"
+    values = [var.compartment_id]
+  }
+
+  sort_by = "TIMECREATED"
 }
 
 # ============================================================================

@@ -133,6 +133,23 @@ variable "ssh_public_key_path" {
 }
 
 # ============================================================================
+# IMAGE - Qual Ubuntu usar
+# ============================================================================
+
+variable "image_name_pattern" {
+  description = "Padrão do nome da imagem (wildcard com *)"
+  type        = string
+  default     = "Canonical-Ubuntu-22.04-aarch64-minimal*"
+  # ⚠️ IMPORTANTE: Always Free usa APENAS aarch64-minimal
+  # Outras opções:
+  #   - "Canonical-Ubuntu-22.04-aarch64-minimal*" ← Always Free (A1.Flex)
+  #   - "Canonical-Ubuntu-22.04-*" ← x86 (NÃO funciona em Always Free)
+  #
+  # Para checar qual imagem está disponível na sua região:
+  # oci compute image list --compartment-id <seu-id> --region sa-saopaulo-1
+}
+
+# ============================================================================
 # STORAGE
 # ============================================================================
 
