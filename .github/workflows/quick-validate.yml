@@ -15,6 +15,11 @@ jobs:
       - name: 📥 Checkout código
         uses: actions/checkout@v4
 
+      - name: 🧰 Configurar Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: 1.6.0
+
       - name: 🔍 Validar YAML
         run: |
           echo "🔍 Validando YAML files..."
@@ -78,15 +83,16 @@ jobs:
           echo ""
           echo "✅ Estrutura validada"
       
-      - name : Testar terraform
+      - name: 🧪 Testar terraform
+        working-directory: terraform
         run: |
           echo "🧪 Testando terraform..."
 
-          # Inicializa o terraform
-          terraform init -input=false || exit 1
+          # Inicializa o terraform sem backend para validação rápida no CI
+          terraform init -input=false -backend=false || exit 1
 
           # Formata o código do terraform
-          terraform fmt -input=false || exit 1
+          terraform fmt -check -recursive -input=false || exit 1
 
           # Valida a configuração do terraform
           terraform validate || exit 1
