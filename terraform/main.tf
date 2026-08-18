@@ -9,7 +9,6 @@
 #   1. API Key (arquivo ~/.oci/config) ← Recomendado para CI/CD
 #   2. Instance Principal (quando rodando em VM OCI)
 #   3. Variáveis de ambiente (MENOS seguro - evite)
-#
 # Em GitHub Actions, use: OCI_CLI_USER, OCI_CLI_FINGERPRINT, OCI_CLI_KEY_CONTENT
 terraform {
   required_version = ">= 1.0"
@@ -38,11 +37,11 @@ terraform {
 
 # Provider OCI
 provider "oci" {
-  tenancy_ocid = var.tenancy_ocid
-  user_ocid    = var.user_ocid
-  fingerprint  = var.fingerprint
-  private_key  = var.private_key_path
-  region       = var.region
+  tenancy_ocid     = var.tenancy_ocid
+  user_ocid        = var.user_ocid
+  fingerprint      = var.fingerprint
+  private_key_path = var.private_key_path
+  region           = var.region
 
   # Configuração de retry para operações que podem falhar temporariamente
   retry_duration_seconds = 30
@@ -74,12 +73,12 @@ locals {
 
   instance_ocpus = {
     dev  = 2    # 2 CPUs ARM - suficiente para K8s + app
-    prod = 4    # 4 CPUs ARM - máximo em Always Free
+    prod = 2    # 2 CPUs ARM
   }
 
   instance_memory = {
-    dev  = 12   # 12GB RAM (Always Free limite)
-    prod = 24   # 24GB RAM (máximo em Always Free)
+    dev  = 12   # 12GB RAM
+    prod = 12   # 12GB RAM 
   }
 }
 
@@ -99,23 +98,18 @@ output "public_subnet_id" {
   sensitive   = false
 }
 
-output "private_subnet_id" {
-  description = "ID da subnet privada (onde fica App + DB)"
-  value       = oci_core_subnet.private.id
-  sensitive   = false
-}
+# ⚠️ Outputs abaixo serão adicionados quando compute.tf for criado
+# output "bastion_public_ip" {
+#   description = "IP público do Bastion Host (para SSH seguro)"
+#   value       = oci_core_instance.bastion[*].public_ip
+#   sensitive   = false
+# }
 
-output "bastion_public_ip" {
-  description = "IP público do Bastion Host (para SSH seguro)"
-  value       = oci_core_instance.bastion[*].public_ip
-  sensitive   = false
-}
-
-output "kubernetes_node_private_ips" {
-  description = "IPs privados dos nós Kubernetes"
-  value       = oci_core_instance.kubernetes_node[*].private_ip
-  sensitive   = false
-}
+# output "kubernetes_node_private_ips" {
+#   description = "IPs privados dos nós Kubernetes"
+#   value       = oci_core_instance.kubernetes_node[*].private_ip
+#   sensitive   = false
+# }
 
 # ============================================================================
 # Data Sources - Busca informações já existentes no OCI
@@ -126,25 +120,9 @@ data "oci_identity_availability_domains" "ads" {
   compartment_id = var.compartment_id
 }
 
-# ⚠️ IMPORTANTE: Oracle Cloud Always Free usa imagens ARM (aarch64)
-# Busca a imagem Ubuntu 22.04 Minimal aarch64 (compatível com VM.Standard.A1.Flex)
-data "oci_core_images" "ubuntu" {
-  compartment_id = var.compartment_id
-
-  # Busca por padrão - aarch64-minimal para Always Free
-  filter {
-    name   = "display_name"
-    values = [var.image_name_pattern]
-  }
-
-  # Limita a compartment especificado
-  filter {
-    name   = "compartment_id"
-    values = [var.compartment_id]
-  }
-
-  sort_by = "TIMECREATED"
-}
+# ⚠️ Image lookup removido - use var.image_ocid
+# Para descobrir o OCID da imagem Ubuntu aarch64-minimal:
+# oci compute image list --all --region sa-saopaulo-1 --query "data[*].[id,display-name]" --output table | grep aarch64-minimal
 
 # ============================================================================
 # Segredos do Terraform (nunca commitar no Git!)

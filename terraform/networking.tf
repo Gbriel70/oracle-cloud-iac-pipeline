@@ -12,11 +12,7 @@ resource "oci_core_vcn" "main" {
   cidr_block     = var.vcn_cidr
   display_name   = "${var.project_name}-vcn-${var.environment}"
 
-  # Habilita DNS dentro da VCN (necessário para service discovery)
-  enable_dns_hostname = true
-  enable_dns_resolver = true
-
-  tags = merge(
+  freeform_tags = merge(
     local.common_tags,
     { Name = "${var.project_name}-vcn" }
   )
@@ -32,23 +28,11 @@ resource "oci_core_internet_gateway" "main" {
   display_name   = "${var.project_name}-igw-${var.environment}"
   enabled        = true
 
-  tags = local.common_tags
+  freeform_tags = local.common_tags
 }
 
-# ============================================================================
-# NAT GATEWAY - Permite VMs privadas acessarem internet SEM receberem tráfego
-# ============================================================================
-
-resource "oci_core_nat_gateway" "main" {
-  compartment_id = var.compartment_id
-  vcn_id         = oci_core_vcn.main.id
-  display_name   = "${var.project_name}-nat-${var.environment}"
-
-  # Habilita o NAT Gateway para a subnet privada sair para internet
-  block_traffic = false
-
-  tags = local.common_tags
-}
+# ⚠️ NAT GATEWAY REMOVIDO - Não é gratuito no Always Free tier
+# Todas as VMs usarão a subnet pública com NSGs para segurança
 
 # ============================================================================
 # ROUTE TABLES - Define para onde o tráfego deve ir
@@ -67,26 +51,10 @@ resource "oci_core_route_table" "public" {
     network_entity_id = oci_core_internet_gateway.main.id
   }
 
-  tags = local.common_tags
+  freeform_tags = local.common_tags
 }
 
-# Route table para SUBNET PRIVADA (App + Database - saída via NAT)
-resource "oci_core_route_table" "private" {
-  compartment_id = var.compartment_id
-  vcn_id         = oci_core_vcn.main.id
-  display_name   = "${var.project_name}-rt-private-${var.environment}"
-
-  # Regra: tráfego saindo (0.0.0.0/0) vai para NAT Gateway
-  # Isso permite que a VM privada inicie conexões de saída (ex: apt update)
-  # MAS não recebe conexões de entrada (mais seguro!)
-  route_rules {
-    destination       = "0.0.0.0/0"
-    destination_type  = "CIDR_BLOCK"
-    network_entity_id = oci_core_nat_gateway.main.id
-  }
-
-  tags = local.common_tags
-}
+# ⚠️ ROUTE TABLE PRIVADA REMOVIDA - Mantém tudo 100% gratuito
 
 # ============================================================================
 # SUBNETS
@@ -102,39 +70,13 @@ resource "oci_core_subnet" "public" {
   # Associa com a route table pública
   route_table_id = oci_core_route_table.public.id
 
-  # Define DNS
-  enable_dns_hostname_label = true
-
-  # Habilita health check (para load balancer)
-  prohibit_intersubnet_fwd = false
-
-  tags = merge(
+  freeform_tags = merge(
     local.common_tags,
     { Name = "public-subnet", Tier = "public" }
   )
 }
 
-# SUBNET PRIVADA - App + Database (sem acesso direto da internet)
-resource "oci_core_subnet" "private" {
-  compartment_id = var.compartment_id
-  vcn_id         = oci_core_vcn.main.id
-  cidr_block     = var.private_subnet_cidr
-  display_name   = "${var.project_name}-subnet-private-${var.environment}"
-
-  # Associa com a route table privada (usa NAT para internet)
-  route_table_id = oci_core_route_table.private.id
-
-  # Define DNS
-  enable_dns_hostname_label = true
-
-  # Proíbe tráfego entre subnets (princípio: cada subnet é isolada)
-  prohibit_intersubnet_fwd = false
-
-  tags = merge(
-    local.common_tags,
-    { Name = "private-subnet", Tier = "private" }
-  )
-}
+# ⚠️ SUBNET PRIVADA REMOVIDA - Todas as VMs usarão a subnet pública com NSGs
 
 # ============================================================================
 # NETWORK SECURITY GROUPS (NSGs) - Firewall a nível de VM
@@ -147,7 +89,7 @@ resource "oci_core_network_security_group" "bastion" {
   vcn_id         = oci_core_vcn.main.id
   display_name   = "${var.project_name}-nsg-bastion-${var.environment}"
 
-  tags = local.common_tags
+  freeform_tags = local.common_tags
 }
 
 # Regra de entrada: SSH do seu IP
@@ -186,7 +128,7 @@ resource "oci_core_network_security_group" "kubernetes" {
   vcn_id         = oci_core_vcn.main.id
   display_name   = "${var.project_name}-nsg-k8s-${var.environment}"
 
-  tags = local.common_tags
+  freeform_tags = local.common_tags
 }
 
 # Regra: HTTP (80)
@@ -278,7 +220,7 @@ resource "oci_core_network_security_group" "database" {
   vcn_id         = oci_core_vcn.main.id
   display_name   = "${var.project_name}-nsg-db-${var.environment}"
 
-  tags = local.common_tags
+  freeform_tags = local.common_tags
 }
 
 # Regra: PostgreSQL (5432) apenas de K8s
@@ -336,7 +278,4 @@ output "public_subnet_cidr" {
   value       = oci_core_subnet.public.cidr_block
 }
 
-output "private_subnet_cidr" {
-  description = "CIDR da subnet privada"
-  value       = oci_core_subnet.private.cidr_block
-}
+# ⚠️ Private subnet output removido - Usando apenas subnet pública (Always Free)

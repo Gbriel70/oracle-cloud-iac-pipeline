@@ -3,13 +3,15 @@
 *.tfstate.backup
 .terraform/
 terraform.tfvars
+*.terraform
 
 # Secrets e configuração sensível ⚠️ CRÍTICO
 .env
 .env.local
 .env.*.local
-secrets/              # BLOQUEIA TODA A PASTA - nunca commit secrets!
-!secrets/.gitkeep     # Apenas o arquivo vazio para manter a estrutura
+secrets/              
+!secrets/.gitkeep  
+.oci/
 
 # SSH Keys
 *.pem

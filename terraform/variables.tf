@@ -33,8 +33,7 @@ variable "private_key_path" {
 variable "region" {
   description = "OCI region"
   type        = string
-  default     = "sa-saopaulo-1" # São Paulo é a mais próxima para Brasil
-  # Outras opções: us-phoenix-1, us-ashburn-1, eu-frankfurt-1
+  default     = "sa-saopaulo-1" 
 }
 
 # ============================================================================
@@ -136,17 +135,12 @@ variable "ssh_public_key_path" {
 # IMAGE - Qual Ubuntu usar
 # ============================================================================
 
-variable "image_name_pattern" {
-  description = "Padrão do nome da imagem (wildcard com *)"
+variable "image_ocid" {
+  description = "OCID da imagem Ubuntu 22.04 aarch64-minimal"
   type        = string
-  default     = "Canonical-Ubuntu-22.04-aarch64-minimal*"
-  # ⚠️ IMPORTANTE: Always Free usa APENAS aarch64-minimal
-  # Outras opções:
-  #   - "Canonical-Ubuntu-22.04-aarch64-minimal*" ← Always Free (A1.Flex)
-  #   - "Canonical-Ubuntu-22.04-*" ← x86 (NÃO funciona em Always Free)
-  #
-  # Para checar qual imagem está disponível na sua região:
-  # oci compute image list --compartment-id <seu-id> --region sa-saopaulo-1
+  # Para descobrir o OCID da imagem na sua região:
+  # oci compute image list --compartment-id ocid1.compartment.oc1..aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa --region sa-saopaulo-1 --all | jq '.data[] | select(.display_name | contains("Canonical-Ubuntu-22.04-aarch64-minimal")) | .id'
+  default = ""
 }
 
 # ============================================================================
@@ -156,13 +150,11 @@ variable "image_name_pattern" {
 variable "postgresql_volume_size_gb" {
   description = "Tamanho do volume para PostgreSQL (em GB)"
   type        = number
-  default     = 100
-  # Dev: 50GB é suficiente
-  # Prod: 500GB+ dependendo do dado
+  default     = 50
 
   validation {
-    condition     = var.postgresql_volume_size_gb >= 50 && var.postgresql_volume_size_gb <= 2048
-    error_message = "Volume deve ter entre 50GB e 2TB."
+    condition     = var.postgresql_volume_size_gb >= 10 && var.postgresql_volume_size_gb <= 50
+    error_message = "Volume deve ter entre 10GB e 50GB."
   }
 }
 
@@ -179,7 +171,7 @@ variable "project_name" {
 variable "owner" {
   description = "Owner do projeto (para contato)"
   type        = string
-  # Exemplo: "gabriel@example.com"
+  # Exemplo: "user@user.com"
 }
 
 # ============================================================================
@@ -216,6 +208,7 @@ variable "enable_logging" {
 # ============================================================================
 
 # Copie e preencha com seus valores:
+# o arquivo terraform.tfvars é onde você pode colocar valores reais sem comitar no Git
 #
 # tenancy_ocid            = "ocid1.tenancy.oc1..aaaa..."
 # user_ocid               = "ocid1.user.oc1..aaaa..."
@@ -225,5 +218,5 @@ variable "enable_logging" {
 # ssh_public_key_path     = "/home/user/.ssh/id_rsa.pub"
 # region                  = "sa-saopaulo-1"
 # environment             = "dev"
-# owner                   = "gabriel@example.com"
+# owner                   = "user@example.com"
 # allowed_ssh_cidrs       = ["seu-ip/32"]
