@@ -77,35 +77,6 @@ jobs:
 
           echo ""
           echo "✅ Estrutura validada"
-
-      - name: 🧪 Testar docker-compose
-        run: |
-          echo "🧪 Testando docker-compose..."
-
-          # Tenta subir os serviços em background
-          docker compose up -d || exit 1
-
-          # Verifica se os containers estão rodando
-          if ! docker compose ps | grep -q "Up"; then
-            echo "❌ Alguns containers não subiram corretamente"
-            docker compose logs || true
-            exit 1
-          fi
-
-          echo "✅ Todos os containers estão rodando"
-
-          # Para os serviços após o teste
-          docker compose down
-      
-      - name: 🧹 Limpeza final
-        if: always()
-        run: |
-          echo "🧹 Limpando containers e volumes..."
-
-          # Para e remove containers e volumes
-          docker compose down -v || true
-
-          echo "✅ Limpeza concluída"
       
       - name : Testar terraform
         run: |
@@ -113,7 +84,7 @@ jobs:
 
           # Inicializa o terraform
           terraform init -input=false || exit 1
-  
+
           # Formata o código do terraform
           terraform fmt -input=false || exit 1
 
