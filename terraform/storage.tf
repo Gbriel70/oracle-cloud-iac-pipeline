@@ -44,7 +44,7 @@ output "postgresql_device_path" {
 
 output "postgresql_mount_instructions" {
   description = "Instruções para montar o volume na VM"
-  value = <<-EOT
+  value       = <<-EOT
 # SSH para database:
 ssh -i ~/.ssh/id_rsa -J ubuntu@${var.allowed_ssh_cidrs[0]} ubuntu@<database-private-ip>
 

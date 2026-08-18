@@ -33,7 +33,7 @@ variable "private_key_path" {
 variable "region" {
   description = "OCI region"
   type        = string
-  default     = "sa-saopaulo-1" 
+  default     = "sa-saopaulo-1"
 }
 
 # ============================================================================

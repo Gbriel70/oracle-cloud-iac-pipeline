@@ -26,10 +26,10 @@ resource "oci_core_instance" "bastion" {
   }
 
   create_vnic_details {
-    subnet_id              = oci_core_subnet.public.id
-    nsg_ids                = [oci_core_network_security_group.bastion.id]
-    assign_public_ip       = true
-    hostname_label         = "${var.project_name}-bastion"
+    subnet_id        = oci_core_subnet.public.id
+    nsg_ids          = [oci_core_network_security_group.bastion.id]
+    assign_public_ip = true
+    hostname_label   = "${var.project_name}-bastion"
   }
 
   metadata = {
@@ -68,10 +68,10 @@ resource "oci_core_instance" "kubernetes_node" {
   }
 
   create_vnic_details {
-    subnet_id              = oci_core_subnet.public.id
-    nsg_ids                = [oci_core_network_security_group.kubernetes.id]
-    assign_public_ip       = true
-    hostname_label         = "${var.instance_display_name}-${count.index}"
+    subnet_id        = oci_core_subnet.public.id
+    nsg_ids          = [oci_core_network_security_group.kubernetes.id]
+    assign_public_ip = true
+    hostname_label   = "${var.instance_display_name}-${count.index}"
   }
 
   metadata = {
@@ -114,10 +114,10 @@ resource "oci_core_instance" "database" {
   }
 
   create_vnic_details {
-    subnet_id              = oci_core_subnet.public.id
-    nsg_ids                = [oci_core_network_security_group.database.id]
-    assign_public_ip       = true
-    hostname_label         = "${var.project_name}-db"
+    subnet_id        = oci_core_subnet.public.id
+    nsg_ids          = [oci_core_network_security_group.database.id]
+    assign_public_ip = true
+    hostname_label   = "${var.project_name}-db"
   }
 
   metadata = {

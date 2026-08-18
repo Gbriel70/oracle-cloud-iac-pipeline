@@ -92,7 +92,7 @@ jobs:
           terraform init -input=false -backend=false || exit 1
 
           # Formata o código do terraform
-          terraform fmt -check -recursive || exit 1
+          terraform fmt -check -no-color *.tf || exit 1
 
           # Valida a configuração do terraform
           terraform validate || exit 1

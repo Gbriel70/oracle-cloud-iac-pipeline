@@ -96,10 +96,10 @@ resource "oci_core_network_security_group" "bastion" {
 resource "oci_core_network_security_group_security_rule" "bastion_ssh_in" {
   network_security_group_id = oci_core_network_security_group.bastion.id
 
-  direction       = "INGRESS"
-  protocol        = "6" # TCP
-  source          = var.allowed_ssh_cidrs[0]
-  source_type     = "CIDR_BLOCK"
+  direction   = "INGRESS"
+  protocol    = "6" # TCP
+  source      = var.allowed_ssh_cidrs[0]
+  source_type = "CIDR_BLOCK"
   tcp_options {
     destination_port_range {
       min = 22
@@ -182,7 +182,7 @@ resource "oci_core_network_security_group_security_rule" "k8s_api" {
   network_security_group_id = oci_core_network_security_group.kubernetes.id
   direction                 = "INGRESS"
   protocol                  = "6"
-  source                    = "10.0.0.0/16"  # Apenas da VCN
+  source                    = "10.0.0.0/16" # Apenas da VCN
   tcp_options {
     destination_port_range {
       min = 6443

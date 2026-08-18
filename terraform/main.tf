@@ -67,18 +67,18 @@ locals {
   # E4 é x86 - NÃO funciona em Always Free!
   # A1.Flex é a única opção Always Free (até 4 OCPUs + 24GB RAM)
   instance_shapes = {
-    dev  = "VM.Standard.A1.Flex"    # Always Free ARM (aarch64)
-    prod = "VM.Standard.A1.Flex"    # Mesmo em prod se usando Always Free
+    dev  = "VM.Standard.A1.Flex" # Always Free ARM (aarch64)
+    prod = "VM.Standard.A1.Flex" # Mesmo em prod se usando Always Free
   }
 
   instance_ocpus = {
-    dev  = 2    # 2 CPUs ARM - suficiente para K8s + app
-    prod = 2    # 2 CPUs ARM
+    dev  = 2 # 2 CPUs ARM - suficiente para K8s + app
+    prod = 2 # 2 CPUs ARM
   }
 
   instance_memory = {
-    dev  = 12   # 12GB RAM
-    prod = 12   # 12GB RAM 
+    dev  = 12 # 12GB RAM
+    prod = 12 # 12GB RAM
   }
 }
 
