@@ -1,0 +1,18 @@
+---
+- name: Preparar todos os servidores
+  hosts: all
+  become: true
+  roles:
+    - base
+
+- name: Preparar nós Kubernetes
+  hosts: kubernetes
+  become: true
+  roles:
+    - kubernetes
+
+- name: Preparar servidor de banco de dados
+  hosts: database
+  become: true
+  roles:
+    - database

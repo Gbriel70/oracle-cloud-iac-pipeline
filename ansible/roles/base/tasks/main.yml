@@ -1,0 +1,16 @@
+---
+- name: Atualizar cache do APT
+  ansible.builtin.apt:
+    update_cache: true
+    cache_valid_time: 3600
+
+- name: Instalar pacotes básicos
+  ansible.builtin.apt:
+    name: "{{ os_packages }}"
+    state: present
+
+- name: Garantir que o chrony esteja ativo
+  ansible.builtin.service:
+    name: chrony
+    state: started
+    enabled: true

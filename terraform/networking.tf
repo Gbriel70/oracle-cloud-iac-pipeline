@@ -31,8 +31,14 @@ resource "oci_core_internet_gateway" "main" {
   freeform_tags = local.common_tags
 }
 
-# ⚠️ NAT GATEWAY REMOVIDO - Não é gratuito no Always Free tier
-# Todas as VMs usarão a subnet pública com NSGs para segurança
+resource "oci_core_nat_gateway" "main" {
+  compartment_id = var.compartment_id
+  vcn_id         = oci_core_vcn.main.id
+  display_name   = "${var.project_name}-nat-${var.environment}"
+  block_traffic  = false
+
+  freeform_tags = local.common_tags
+}
 
 # ============================================================================
 # ROUTE TABLES - Define para onde o tráfego deve ir
@@ -54,7 +60,19 @@ resource "oci_core_route_table" "public" {
   freeform_tags = local.common_tags
 }
 
-# ⚠️ ROUTE TABLE PRIVADA REMOVIDA - Mantém tudo 100% gratuito
+resource "oci_core_route_table" "private" {
+  compartment_id = var.compartment_id
+  vcn_id         = oci_core_vcn.main.id
+  display_name   = "${var.project_name}-rt-private-${var.environment}"
+
+  route_rules {
+    destination       = "0.0.0.0/0"
+    destination_type  = "CIDR_BLOCK"
+    network_entity_id = oci_core_nat_gateway.main.id
+  }
+
+  freeform_tags = local.common_tags
+}
 
 # ============================================================================
 # SUBNETS
@@ -76,7 +94,22 @@ resource "oci_core_subnet" "public" {
   )
 }
 
-# ⚠️ SUBNET PRIVADA REMOVIDA - Todas as VMs usarão a subnet pública com NSGs
+# SUBNET PRIVADA - Database (sem acesso direto à internet)
+resource "oci_core_subnet" "private" {
+  compartment_id = var.compartment_id
+  vcn_id         = oci_core_vcn.main.id
+  cidr_block     = var.private_subnet_cidr
+  display_name   = "${var.project_name}-subnet-private-${var.environment}"
+
+  route_table_id              = oci_core_route_table.private.id
+  security_list_ids           = []
+  prohibit_public_ip_on_vnic  = true
+
+  freeform_tags = merge(
+    local.common_tags,
+    { Name = "private-subnet", Tier = "private" }
+  )
+}
 
 # ============================================================================
 # NETWORK SECURITY GROUPS (NSGs) - Firewall a nível de VM
@@ -276,6 +309,11 @@ output "vcn_cidr" {
 output "public_subnet_cidr" {
   description = "CIDR da subnet pública"
   value       = oci_core_subnet.public.cidr_block
+}
+
+output "private_subnet_cidr" {
+  description = "CIDR da subnet privada"
+  value       = oci_core_subnet.private.cidr_block
 }
 
 # ⚠️ Private subnet output removido - Usando apenas subnet pública (Always Free)

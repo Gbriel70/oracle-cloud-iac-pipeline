@@ -5,6 +5,9 @@
 terraform.tfvars
 *.terraform
 
+# Ansible inventory gerado pelo Terraform
+ansible/inventory/dev.ini
+
 # Secrets e configuração sensível ⚠️ CRÍTICO
 .env
 .env.local

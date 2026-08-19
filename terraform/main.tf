@@ -18,6 +18,11 @@ terraform {
       source  = "oracle/oci"
       version = "~> 5.0"
     }
+
+    local = {
+      source  = "hashicorp/local"
+      version = "~> 2.5"
+    }
   }
 
   # ⚠️ IMPORTANTE: State remoto evita que credentials fiquem no Git
@@ -80,11 +85,26 @@ locals {
     dev  = 12 # 12GB RAM
     prod = 12 # 12GB RAM
   }
+
+  ansible_inventory_content = templatefile("${path.module}/../ansible/templates/dev.ini.tftpl", {
+    ansible_user             = "ubuntu"
+    ansible_private_key_file = pathexpand("~/.ssh/id_rsa")
+    bastion_public_ip        = var.enable_bastion ? oci_core_instance.bastion[0].public_ip : ""
+    enable_bastion           = var.enable_bastion
+    kubernetes_node_ips      = oci_core_instance.kubernetes_node[*].private_ip
+    database_private_ip      = oci_core_instance.database[0].private_ip
+  })
 }
 
 # ============================================================================
 # Outputs - O que Terraform deve mostrar ao final
 # ============================================================================
+
+resource "local_file" "ansible_inventory" {
+  filename        = "${path.module}/../ansible/inventory/dev.ini"
+  content         = local.ansible_inventory_content
+  file_permission = "0644"
+}
 
 output "vcn_id" {
   description = "ID da Virtual Cloud Network"

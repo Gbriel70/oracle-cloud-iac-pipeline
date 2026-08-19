@@ -68,9 +68,9 @@ resource "oci_core_instance" "kubernetes_node" {
   }
 
   create_vnic_details {
-    subnet_id        = oci_core_subnet.public.id
+    subnet_id        = oci_core_subnet.private.id
     nsg_ids          = [oci_core_network_security_group.kubernetes.id]
-    assign_public_ip = true
+    assign_public_ip = false
     hostname_label   = "${var.instance_display_name}-${count.index}"
   }
 
@@ -114,9 +114,9 @@ resource "oci_core_instance" "database" {
   }
 
   create_vnic_details {
-    subnet_id        = oci_core_subnet.public.id
+    subnet_id        = oci_core_subnet.private.id
     nsg_ids          = [oci_core_network_security_group.database.id]
-    assign_public_ip = true
+    assign_public_ip = false
     hostname_label   = "${var.project_name}-db"
   }
 
@@ -181,8 +181,8 @@ output "bastion_private_ip" {
 }
 
 output "kubernetes_node_public_ips" {
-  description = "IPs públicos dos nós Kubernetes"
-  value       = oci_core_instance.kubernetes_node[*].public_ip
+  description = "IPs privados dos nós Kubernetes"
+  value       = oci_core_instance.kubernetes_node[*].private_ip
 }
 
 output "kubernetes_node_private_ips" {
@@ -191,8 +191,8 @@ output "kubernetes_node_private_ips" {
 }
 
 output "database_public_ip" {
-  description = "IP público do Database"
-  value       = oci_core_instance.database[0].public_ip
+  description = "IP privado do Database"
+  value       = oci_core_instance.database[0].private_ip
 }
 
 output "database_private_ip" {

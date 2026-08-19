@@ -1,0 +1,90 @@
+---
+- name: Definir o nó inicial do cluster
+  ansible.builtin.set_fact:
+    k3s_server_host: "{{ groups['kubernetes'][0] }}"
+    k3s_server_ip: "{{ hostvars[groups['kubernetes'][0]].ansible_host }}"
+
+- name: Desativar swap imediatamente
+  ansible.builtin.command: swapoff -a
+  changed_when: false
+
+- name: Remover swap do fstab
+  ansible.builtin.replace:
+    path: /etc/fstab
+    regexp: '^(.*\sswap\s.*)$'
+    replace: '# \1'
+
+- name: Carregar módulos do kernel para Kubernetes
+  ansible.builtin.copy:
+    dest: /etc/modules-load.d/k3s.conf
+    content: |
+      overlay
+      br_netfilter
+    mode: "0644"
+
+- name: Aplicar parâmetros de rede para Kubernetes
+  ansible.builtin.copy:
+    dest: /etc/sysctl.d/99-k3s.conf
+    content: |
+      net.bridge.bridge-nf-call-iptables = 1
+      net.bridge.bridge-nf-call-ip6tables = 1
+      net.ipv4.ip_forward = 1
+    mode: "0644"
+
+- name: Aplicar sysctl
+  ansible.builtin.command: sysctl --system
+  changed_when: false
+
+- name: Instalar K3s no servidor inicial
+  ansible.builtin.shell: |
+    curl -sfL https://get.k3s.io | INSTALL_K3S_VERSION={{ k3s_version }} sh -s - server \
+      --disable traefik \
+      --node-ip {{ k3s_server_ip }} \
+      --advertise-address {{ k3s_server_ip }} \
+      --tls-san {{ k3s_server_ip }}
+  args:
+    creates: /usr/local/bin/k3s
+  when: inventory_hostname == k3s_server_host
+
+- name: Criar diretório kube do usuário ubuntu
+  ansible.builtin.file:
+    path: /home/ubuntu/.kube
+    state: directory
+    owner: ubuntu
+    group: ubuntu
+    mode: "0755"
+  when: inventory_hostname == k3s_server_host
+
+- name: Copiar kubeconfig para o usuário ubuntu
+  ansible.builtin.copy:
+    src: /etc/rancher/k3s/k3s.yaml
+    dest: /home/ubuntu/.kube/config
+    remote_src: true
+    owner: ubuntu
+    group: ubuntu
+    mode: "0600"
+  when: inventory_hostname == k3s_server_host
+
+- name: Ler token do servidor K3s
+  ansible.builtin.slurp:
+    src: /var/lib/rancher/k3s/server/node-token
+  register: k3s_server_token_raw
+  delegate_to: "{{ k3s_server_host }}"
+  run_once: true
+  when: inventory_hostname == k3s_server_host
+
+- name: Publicar token do K3s para os demais nós
+  ansible.builtin.set_fact:
+    k3s_server_token: "{{ k3s_server_token_raw.content | b64decode | trim }}"
+  run_once: true
+  delegate_to: localhost
+  delegate_facts: true
+  when: inventory_hostname == k3s_server_host
+
+- name: Instalar K3s como agent nos demais nós
+  ansible.builtin.shell: |
+    curl -sfL https://get.k3s.io | INSTALL_K3S_VERSION={{ k3s_version }} K3S_URL=https://{{ k3s_server_ip }}:6443 K3S_TOKEN={{ hostvars['localhost'].k3s_server_token }} sh -s - agent \
+      --node-ip {{ hostvars[inventory_hostname].ansible_host }}
+  args:
+    creates: /usr/local/bin/k3s-agent
+  when: inventory_hostname != k3s_server_host
