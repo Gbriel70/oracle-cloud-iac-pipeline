@@ -1,0 +1,46 @@
+---
+- name: Verificar filesystem no volume de dados
+  ansible.builtin.command: "blkid -o value -s TYPE {{ postgresql_data_device }}"
+  register: postgresql_volume_filesystem
+  changed_when: false
+  failed_when: false
+
+- name: Criar filesystem ext4 no volume quando estiver vazio
+  ansible.builtin.command: "mkfs.ext4 {{ postgresql_data_device }}"
+  when: postgresql_volume_filesystem.stdout | trim == ""
+
+- name: Garantir o diretório de montagem do volume
+  ansible.builtin.file:
+    path: "{{ postgresql_data_mount_point }}"
+    state: directory
+    mode: "0755"
+
+- name: Montar volume persistente do PostgreSQL
+  ansible.builtin.mount:
+    path: "{{ postgresql_data_mount_point }}"
+    src: "{{ postgresql_data_device }}"
+    fstype: ext4
+    opts: defaults,nofail
+    state: mounted
+
+- name: Garantir estrutura de dados do PostgreSQL no volume montado
+  ansible.builtin.file:
+    path: "{{ postgresql_data_mount_point }}/data"
+    state: directory
+    mode: "0700"
+
+- name: Iniciar contêiner PostgreSQL com Docker
+  community.docker.docker_container:
+    name: "{{ postgresql_container_name }}"
+    image: "{{ postgresql_image }}"
+    state: started
+    restart_policy: "{{ postgresql_container_restart_policy }}"
+    ports:
+      - "{{ postgresql_container_port }}"
+    env:
+      POSTGRES_DB: "{{ postgresql_db_name }}"
+      POSTGRES_USER: "{{ postgresql_db_user }}"
+      POSTGRES_PASSWORD: "{{ postgresql_db_password }}"
+    volumes:
+      - "{{ postgresql_data_mount_point }}:/var/lib/postgresql/data"
+  no_log: true
