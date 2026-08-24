@@ -1,0 +1,12 @@
+---
+# playbooks/roles/base/defaults/main.yml
+os_packages:
+  - curl
+  - wget
+  - git
+  - htop
+  - vim
+  - ufw
+  - ca-certificates
+  - software-properties-common
+  - chrony
