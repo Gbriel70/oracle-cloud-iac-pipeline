@@ -5,12 +5,12 @@
   roles:
     - base
 
-- name: Preparar servidor de banco de dados
+- name: Subir a stack de aplicações (Nginx, Postgres, Vault)
   hosts: database
   become: true
   roles:
     - docker
-    - postgresql
+    - app_stack
 
 - name: Preparar nós Kubernetes
   hosts: kubernetes

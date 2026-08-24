@@ -1,7 +1,7 @@
 services:
   postgres:
     build:
-      context: ./docker_srcs/postgres
+      context: ./postgres
       dockerfile: Dockerfile
     container_name: postgres
     secrets:
@@ -23,7 +23,7 @@ services:
 
   vault:
     build:
-      context: ./docker_srcs/vault
+      context: ./vault
       dockerfile: Dockerfile
     container_name: vault
     depends_on:
@@ -51,7 +51,7 @@ services:
 
   nginx:
     build:
-      context: ./docker_srcs/nginx
+      context: ./nginx
       dockerfile: Dockerfile
     container_name: nginx
     depends_on:
