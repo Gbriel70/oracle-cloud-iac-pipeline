@@ -56,6 +56,17 @@ provider "oci" {
 # Locals - Variáveis internas do Terraform (não são inputs do usuário)
 # ============================================================================
 
+# Busca a imagem Ubuntu compatível com Always Free e ARM na região atual
+# Se image_ocid estiver vazio, usamos a primeira imagem encontrada.
+data "oci_core_images" "ubuntu_compatible" {
+  compartment_id           = var.compartment_id
+  operating_system         = "Canonical Ubuntu"
+  operating_system_version = "22.04"
+  shape                    = "VM.Standard.A1.Flex"
+  sort_by                  = "TIMECREATED"
+  sort_order               = "DESC"
+}
+
 locals {
   # Nome padrão para recursos (facilita identificação)
   environment_name = var.environment
@@ -85,6 +96,8 @@ locals {
     dev  = 12 # 12GB RAM
     prod = 12 # 12GB RAM
   }
+
+  resolved_image_ocid = var.image_ocid != "" ? var.image_ocid : data.oci_core_images.ubuntu_compatible.images[0].id
 
   ansible_inventory_content = templatefile("${path.module}/../ansible/templates/dev.ini.tftpl", {
     ansible_user             = "ubuntu"

@@ -101,9 +101,9 @@ resource "oci_core_subnet" "private" {
   cidr_block     = var.private_subnet_cidr
   display_name   = "${var.project_name}-subnet-private-${var.environment}"
 
-  route_table_id              = oci_core_route_table.private.id
-  security_list_ids           = []
-  prohibit_public_ip_on_vnic  = true
+  route_table_id             = oci_core_route_table.private.id
+  security_list_ids          = []
+  prohibit_public_ip_on_vnic = true
 
   freeform_tags = merge(
     local.common_tags,

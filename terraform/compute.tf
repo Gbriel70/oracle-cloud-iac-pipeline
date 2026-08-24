@@ -21,7 +21,7 @@ resource "oci_core_instance" "bastion" {
 
   source_details {
     source_type             = "IMAGE"
-    source_id               = var.image_ocid
+    source_id               = local.resolved_image_ocid
     boot_volume_size_in_gbs = 50
   }
 
@@ -63,7 +63,7 @@ resource "oci_core_instance" "kubernetes_node" {
 
   source_details {
     source_type             = "IMAGE"
-    source_id               = var.image_ocid
+    source_id               = local.resolved_image_ocid
     boot_volume_size_in_gbs = 100
   }
 
@@ -109,7 +109,7 @@ resource "oci_core_instance" "database" {
 
   source_details {
     source_type             = "IMAGE"
-    source_id               = var.image_ocid
+    source_id               = local.resolved_image_ocid
     boot_volume_size_in_gbs = 100
   }
 

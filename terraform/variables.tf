@@ -136,11 +136,9 @@ variable "ssh_public_key_path" {
 # ============================================================================
 
 variable "image_ocid" {
-  description = "OCID da imagem Ubuntu 22.04 aarch64-minimal"
+  description = "OCID da imagem Ubuntu 22.04 aarch64-minimal. Se vazio, o Terraform tenta localizar uma imagem compatível automaticamente."
   type        = string
-  # Para descobrir o OCID da imagem na sua região:
-  # oci compute image list --compartment-id ocid1.compartment.oc1..aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa --region sa-saopaulo-1 --all | jq '.data[] | select(.display_name | contains("Canonical-Ubuntu-22.04-aarch64-minimal")) | .id'
-  default = ""
+  default     = ""
 }
 
 # ============================================================================
@@ -179,11 +177,16 @@ variable "owner" {
 # ============================================================================
 
 variable "allowed_ssh_cidrs" {
-  description = "CIDRs que podem fazer SSH no bastion (seu IP)"
+  description = "CIDRs que podem fazer SSH no bastion (seu IP). Use apenas IPv4 em OCI NSG."
   type        = list(string)
-  default     = ["0.0.0.0/0"] # ⚠️ INSEGURO - permitir tudo
-  # MUDE PARA: ["seu-ip/32"] ex: ["200.123.45.67/32"]
-  # Nunca deixe 0.0.0.0/0 em produção!
+  default     = ["0.0.0.0/0"]
+
+  validation {
+    condition = length(var.allowed_ssh_cidrs) > 0 && alltrue([
+      for cidr in var.allowed_ssh_cidrs : can(cidrnetmask(cidr)) && !strcontains(cidr, ":")
+    ])
+    error_message = "allowed_ssh_cidrs deve conter somente CIDR IPv4 válidos, por exemplo: ['191.52.60.10/32']"
+  }
 }
 
 variable "allowed_http_cidrs" {
