@@ -11,6 +11,7 @@ resource "oci_core_vcn" "main" {
   compartment_id = var.compartment_id
   cidr_block     = var.vcn_cidr
   display_name   = "${var.project_name}-vcn-${var.environment}"
+  dns_label      = "mainvcn"
 
   freeform_tags = merge(
     local.common_tags,
@@ -84,6 +85,7 @@ resource "oci_core_subnet" "public" {
   vcn_id         = oci_core_vcn.main.id
   cidr_block     = var.public_subnet_cidr
   display_name   = "${var.project_name}-subnet-public-${var.environment}"
+  dns_label      = "public"
 
   # Associa com a route table pública
   route_table_id = oci_core_route_table.public.id
@@ -100,7 +102,8 @@ resource "oci_core_subnet" "private" {
   vcn_id         = oci_core_vcn.main.id
   cidr_block     = var.private_subnet_cidr
   display_name   = "${var.project_name}-subnet-private-${var.environment}"
-
+  dns_label      = "private"
+  
   route_table_id             = oci_core_route_table.private.id
   security_list_ids          = []
   prohibit_public_ip_on_vnic = true
