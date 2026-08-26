@@ -8,6 +8,7 @@ Criar um portfolio profissional completo integrando:
 - **Vault**: Centraliza secrets
 - **GitHub Actions**: CI/CD end-to-end
 
+
 ---
 
 ## ✅ FASE 1: Terraform - QUASE COMPLETO!
