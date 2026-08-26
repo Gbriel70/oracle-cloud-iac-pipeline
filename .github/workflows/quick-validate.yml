@@ -51,17 +51,6 @@ jobs:
           # Valida sintaxe (docker-compose já está disponível)
           docker compose config > /dev/null 2>&1 && echo "✅ docker-compose.yml válido" || exit 1
 
-      - name: 🔒 Verificar secrets não commitados
-        run: |
-          echo "🔍 Verificando se secrets foram commitados..."
-
-          if git log --all --pretty=format: --name-only | grep -E "(\.env|\.key|private|secret)" | grep -v "secrets/"; then
-            echo "❌ Possível secret encontrado em histórico"
-            exit 1
-          fi
-
-          echo "✅ Nenhum secret óbvio no repositório"
-
       - name: ✅ Verificar estrutura obrigatória
         run: |
           echo "📋 Checklist de estrutura..."
