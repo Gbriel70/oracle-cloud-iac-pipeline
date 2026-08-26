@@ -7,6 +7,7 @@ terraform.tfvars
 
 # Ansible inventory gerado pelo Terraform
 ansible/inventory/dev.ini
+ansible/playbooks/k3s-kubeconfig.yaml
 
 # Secrets e configuração sensível ⚠️ CRÍTICO
 .env
