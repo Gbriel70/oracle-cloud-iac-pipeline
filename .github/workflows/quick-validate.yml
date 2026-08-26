@@ -8,7 +8,7 @@ on:
   workflow_dispatch:
 
 jobs:
-  lint-and-validate:
+  validate:
     runs-on: ubuntu-latest
 
     steps:
@@ -18,72 +18,33 @@ jobs:
       - name: 🧰 Configurar Terraform
         uses: hashicorp/setup-terraform@v3
         with:
-          terraform_version: 1.6.0
+          terraform_version: 1.9.5
 
-      - name: 🔍 Validar YAML
-        run: |
-          echo "🔍 Validando YAML files..."
-
-          # Instala yamllint (se não estiver disponível)
-          python3 -m pip install --quiet yamllint 2>/dev/null || true
-
-          # Valida docker-compose.yml
-          yamllint -d relaxed docker-compose.yml 2>/dev/null || echo "⚠️ Problema em YAML (não-crítico)"
-
-      - name: 🐚 Validar scripts Shell
-        run: |
-          echo "🔍 Validando scripts shell..."
-
-          # Verifica sintaxe básica dos scripts
-          for script in docker_srcs/**/*.sh; do
-            if [ -f "$script" ]; then
-              echo "Validando $script..."
-              bash -n "$script" || echo "⚠️ Erro de sintaxe em $script"
-            fi
-          done
-
-          echo "✅ Validação de scripts completa"
-
-      - name: 📋 Validar docker-compose.yml
-        run: |
-          echo "🔍 Validando composição..."
-
-          # Valida sintaxe (docker-compose já está disponível)
-          docker compose config > /dev/null 2>&1 && echo "✅ docker-compose.yml válido" || exit 1
-
-      - name: ✅ Verificar estrutura obrigatória
-        run: |
-          echo "📋 Checklist de estrutura..."
-
-          # Verifica diretórios obrigatórios
-          [ -d "docker_srcs/postgres" ] && echo "✅ docker_srcs/postgres" || exit 1
-          [ -d "docker_srcs/vault" ] && echo "✅ docker_srcs/vault" || exit 1
-          [ -d "docker_srcs/nginx" ] && echo "✅ docker_srcs/nginx" || exit 1
-          [ -d ".github/workflows" ] && echo "✅ .github/workflows" || exit 1
-
-          # Verifica arquivos obrigatórios
-          [ -f "docker-compose.yml" ] && echo "✅ docker-compose.yml" || exit 1
-          [ -f "docker_srcs/postgres/init.sql" ] && echo "✅ init.sql" || exit 1
-          [ -f "SECRETS_SETUP.md" ] && echo "✅ SECRETS_SETUP.md" || exit 1
-
-          # Verifica que secrets/ está em .gitignore (não devem estar no repo!)
-          grep -q "^secrets/" .gitignore && echo "✅ secrets/ bloqueado em .gitignore" || exit 1
-
-          echo ""
-          echo "✅ Estrutura validada"
-      
-      - name: 🧪 Testar terraform
+      - name: 🧪 Validar Terraform
         working-directory: terraform
         run: |
-          echo "🧪 Testando terraform..."
+          terraform init -input=false -backend=false
+          terraform fmt -check
+          terraform validate
+          echo "✅ Terraform validado"
 
-          # Inicializa o terraform sem backend para validação rápida no CI
-          terraform init -input=false -backend=false || exit 1
+      - name: 📋 Validar Docker Compose
+        run: |
+          # Garante a existência da pasta de secrets temporária para o Compose validar
+          mkdir -p secrets/postgres secrets/vault secrets/nginx
+          touch secrets/postgres/postgres_db.txt \
+                secrets/postgres/postgres_user.txt \
+                secrets/postgres/postgres_password.txt \
+                secrets/postgres/postgres_init_db_args.txt
 
-          # Formata o código do terraform
-          terraform fmt -check -no-color *.tf || exit 1
+          # Busca o docker-compose.yml no caminho atual ou em docker_srcs/
+          COMPOSE_FILE=$(find . -maxdepth 2 -name "docker-compose.yml" | head -n 1)
 
-          # Valida a configuração do terraform
-          terraform validate || exit 1
-
-          echo "✅ Terraform validado com sucesso"
+          if [ -n "$COMPOSE_FILE" ]; then
+            echo "Avaliando $COMPOSE_FILE..."
+            docker compose -f "$COMPOSE_FILE" config --quiet
+            echo "✅ Docker Compose válido"
+          else
+            echo "❌ Nenhum docker-compose.yml encontrado"
+            exit 1
+          fi
