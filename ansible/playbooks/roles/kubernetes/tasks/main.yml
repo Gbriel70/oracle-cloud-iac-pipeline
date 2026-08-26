@@ -65,6 +65,24 @@
     mode: "0600"
   when: inventory_hostname == k3s_server_host
 
+# --- AJUSTES PARA DEPLOY REMOTO VIA BASTION / GITHUB ACTIONS ---
+
+- name: Ajustar IP do cluster no kubeconfig do usuário ubuntu
+  ansible.builtin.replace:
+    path: /home/ubuntu/.kube/config
+    regexp: 'https://127.0.0.1:6443'
+    replace: "https://{{ k3s_server_ip }}:6443"
+  when: inventory_hostname == k3s_server_host
+
+- name: Baixar o kubeconfig gerado para a máquina local
+  ansible.builtin.fetch:
+    src: /home/ubuntu/.kube/config
+    dest: "./k3s-kubeconfig.yaml"
+    flat: true
+  when: inventory_hostname == k3s_server_host
+
+# -------------------------------------------------------------
+
 - name: Ler token do servidor K3s
   ansible.builtin.slurp:
     src: /var/lib/rancher/k3s/server/node-token
