@@ -41,7 +41,7 @@ jobs:
         with:
           context: ./docker_srcs/nginx
           file: ./docker_srcs/nginx/Dockerfile
-          platforms: linux/arm64   # <-- NOVO: Força o build para o processador da Oracle
+          platforms: linux/arm64   # <-- Força o build para o processador da Oracle
           push: true
           tags: |
             ghcr.io/${{ env.REPO_LOWER }}/nginx:latest
@@ -53,7 +53,7 @@ jobs:
         with:
           context: ./docker_srcs/postgres
           file: ./docker_srcs/postgres/Dockerfile
-          platforms: linux/arm64   # <-- NOVO
+          platforms: linux/arm64
           push: true
           tags: |
             ghcr.io/${{ env.REPO_LOWER }}/postgres:latest
@@ -65,7 +65,7 @@ jobs:
         with:
           context: ./docker_srcs/vault
           file: ./docker_srcs/vault/Dockerfile
-          platforms: linux/arm64   # <-- NOVO
+          platforms: linux/arm64
           push: true
           tags: |
             ghcr.io/${{ env.REPO_LOWER }}/vault:latest
@@ -83,6 +83,7 @@ jobs:
           echo "${{ secrets.KUBE_CONFIG }}" | base64 -d > ~/.kube/config
           chmod 600 ~/.kube/config
 
+      # NOVO: Injetar o SHA do commit nos manifestos do Kubernetes
       - name: 📝 Substituir tag :latest pelo SHA do commit
         run: |
           sed -i 's|:latest|:${{ github.sha }}|g' k8s/*.yaml
@@ -100,3 +101,15 @@ jobs:
 
           kubectl --server=https://127.0.0.1:6443 --insecure-skip-tls-verify apply -f k8s/
           kubectl --server=https://127.0.0.1:6443 --insecure-skip-tls-verify rollout status deployment/app-web --timeout=120s
+
+      # 6. Exibir Diagnóstico se houver falha no rollout
+      - name: 🔍 Diagnóstico em Caso de Falha
+        if: failure()
+        run: |
+          ssh -o StrictHostKeyChecking=no -f -N -L 6443:${{ secrets.K8S_NODE_IP }}:6443 ubuntu@${{ secrets.BASTION_IP }} || true
+          echo "=== 📌 LISTA DE PODS ==="
+          kubectl --server=https://127.0.0.1:6443 --insecure-skip-tls-verify get pods
+          echo "=== 📌 DESCRIÇÃO DOS PODS (EVENTOS) ==="
+          kubectl --server=https://127.0.0.1:6443 --insecure-skip-tls-verify describe pods
+          echo "=== 📌 LOGS DOS CONTAINERS ==="
+          kubectl --server=https://127.0.0.1:6443 --insecure-skip-tls-verify logs -l app=app-web --tail=50 || true
