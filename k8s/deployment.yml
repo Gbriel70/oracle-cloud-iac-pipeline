@@ -17,6 +17,7 @@ spec:
       containers:
         - name: web
           image: ghcr.io/gbriel70/oracle-cloud-iac-pipeline/nginx:latest
+          imagePullPolicy: Always
           ports:
             - containerPort: 80
           resources:

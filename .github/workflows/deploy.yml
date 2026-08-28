@@ -83,6 +83,10 @@ jobs:
           echo "${{ secrets.KUBE_CONFIG }}" | base64 -d > ~/.kube/config
           chmod 600 ~/.kube/config
 
+      - name: 📝 Substituir tag :latest pelo SHA do commit
+        run: |
+          sed -i 's|:latest|:${{ github.sha }}|g' k8s/*.yaml
+
       # 5. Aplicação no K3s
       - name: 🚀 Estabelecer Túnel SSH e Aplicar Manifestos no K3s
         run: |
@@ -95,17 +99,4 @@ jobs:
             --dry-run=client -o yaml | kubectl --server=https://127.0.0.1:6443 --insecure-skip-tls-verify apply -f -
 
           kubectl --server=https://127.0.0.1:6443 --insecure-skip-tls-verify apply -f k8s/
-          kubectl --server=https://127.0.0.1:6443 --insecure-skip-tls-verify rollout restart deployment
           kubectl --server=https://127.0.0.1:6443 --insecure-skip-tls-verify rollout status deployment/app-web --timeout=120s
-
-      # 6. Exibir Diagnóstico se houver falha no rollout
-      - name: 🔍 Diagnóstico em Caso de Falha
-        if: failure()
-        run: |
-          ssh -o StrictHostKeyChecking=no -f -N -L 6443:${{ secrets.K8S_NODE_IP }}:6443 ubuntu@${{ secrets.BASTION_IP }} || true
-          echo "=== 📌 LISTA DE PODS ==="
-          kubectl --server=https://127.0.0.1:6443 --insecure-skip-tls-verify get pods
-          echo "=== 📌 DESCRIÇÃO DOS PODS (EVENTOS) ==="
-          kubectl --server=https://127.0.0.1:6443 --insecure-skip-tls-verify describe pods
-          echo "=== 📌 LOGS DOS CONTAINERS ==="
-          kubectl --server=https://127.0.0.1:6443 --insecure-skip-tls-verify logs -l app=app-web --tail=50 || true
