@@ -77,11 +77,18 @@ jobs:
         run: |
           ssh -o StrictHostKeyChecking=no -f -N -L 6443:${{ secrets.K8S_NODE_IP }}:6443 ubuntu@${{ secrets.BASTION_IP }}
           
+          # Cria a secret de autenticação do GHCR no Kubernetes (se não existir)
+          kubectl --server=https://127.0.0.1:6443 --insecure-skip-tls-verify create secret docker-registry ghcr-secret \
+            --docker-server=ghcr.io \
+            --docker-username=${{ github.actor }} \
+            --docker-password=${{ secrets.GITHUB_TOKEN }} \
+            --dry-run=client -o yaml | kubectl --server=https://127.0.0.1:6443 --insecure-skip-tls-verify apply -f -
+
           # Aplica os arquivos declarativos da pasta k8s/
           kubectl --server=https://127.0.0.1:6443 --insecure-skip-tls-verify apply -f k8s/
           
-          # Reinicia todos os deployments do namespace
+          # Reinicia os deployments
           kubectl --server=https://127.0.0.1:6443 --insecure-skip-tls-verify rollout restart deployment
           
-          # (Opcional) Aguarda a confirmação de subida dos pods
-          kubectl --server=https://127.0.0.1:6443 --insecure-skip-tls-verify rollout status deployment/app-web --timeout=60s
+          # Aguarda o rollout com timeout expandido para 180s
+          kubectl --server=https://127.0.0.1:6443 --insecure-skip-tls-verify rollout status deployment/app-web --timeout=180s
