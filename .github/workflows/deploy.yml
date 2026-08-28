@@ -1,0 +1,81 @@
+name: Continuous Integration & Deployment
+
+on:
+  push:
+    branches: [ main ]
+
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: 📥 Checkout do código
+        uses: actions/checkout@v4
+
+      - name: 🔐 Autenticar no GitHub Container Registry (GHCR)
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      # 1. Build & Push: Nginx
+      - name: 🐳 Build e Push - Nginx
+        uses: docker/build-push-action@v5
+        with:
+          context: ./docker_srcs/nginx
+          file: ./docker_srcs/nginx/Dockerfile
+          push: true
+          tags: |
+            ghcr.io/${{ github.repository }}/nginx:latest
+            ghcr.io/${{ github.repository }}/nginx:${{ github.sha }}
+
+      # 2. Build & Push: Postgres
+      - name: 🐳 Build e Push - Postgres
+        uses: docker/build-push-action@v5
+        with:
+          context: ./docker_srcs/postgres
+          file: ./docker_srcs/postgres/Dockerfile
+          push: true
+          tags: |
+            ghcr.io/${{ github.repository }}/postgres:latest
+            ghcr.io/${{ github.repository }}/postgres:${{ github.sha }}
+
+      # 3. Build & Push: Vault
+      - name: 🐳 Build e Push - Vault
+        uses: docker/build-push-action@v5
+        with:
+          context: ./docker_srcs/vault
+          file: ./docker_srcs/vault/Dockerfile
+          push: true
+          tags: |
+            ghcr.io/${{ github.repository }}/vault:latest
+            ghcr.io/${{ github.repository }}/vault:${{ github.sha }}
+
+      # 4. Conexão SSH
+      - name: 🔑 Configurar Chave SSH para o Bastion
+        uses: webfactory/ssh-agent@v0.9.0
+        with:
+          ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
+
+      - name: ⚙️ Configurar Kubeconfig
+        run: |
+          mkdir -p ~/.kube
+          echo "${{ secrets.KUBE_CONFIG }}" | base64 -d > ~/.kube/config
+          chmod 600 ~/.kube/config
+
+      # 5. Aplicação no K3s
+      - name: 🚀 Estabelecer Túnel SSH e Aplicar Manifestos no K3s
+        run: |
+          # Abre o túnel SSH em background
+          ssh -o StrictHostKeyChecking=no -f -N -L 6443:${{ secrets.K8S_NODE_IP }}:6443 ubuntu@${{ secrets.BASTION_IP }}
+          
+          # Aplica os arquivos declarativos da pasta k8s/
+          kubectl --server=https://127.0.0.1:6443 --insecure-skip-tls-verify apply -f k8s/
+          
+          # Força o restart dos Deployments/StatefulSets para carregar as novas imagens
+          kubectl --server=https://127.0.0.1:6443 --insecure-skip-tls-verify rollout restart deployment --all

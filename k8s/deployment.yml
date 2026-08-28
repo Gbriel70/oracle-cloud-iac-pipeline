@@ -1,0 +1,41 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: app-web
+  labels:
+    app: app-web
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: app-web
+  template:
+    metadata:
+      labels:
+        app: app-web
+    spec:
+      containers:
+        - name: web
+          image: ghcr.io/Gbriel70/oracle-cloud-iac-pipeline/app-web:latest
+          ports:
+            - containerPort: 80
+          resources:
+            limits:
+              cpu: "250m"
+              memory: "256Mi"
+            requests:
+              cpu: "100m"
+              memory: "128Mi"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: app-web-service
+spec:
+  type: ClusterIP
+  selector:
+    app: app-web
+  ports:
+    - protocol: TCP
+      port: 80
+      targetPort: 80
