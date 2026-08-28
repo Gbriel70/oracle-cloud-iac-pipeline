@@ -16,7 +16,7 @@ spec:
     spec:
       containers:
         - name: web
-          image: ghcr.io/Gbriel70/oracle-cloud-iac-pipeline/app-web:latest
+          image: ghcr.io/Gbriel70/oracle-cloud-iac-pipeline/nginx:latest
           ports:
             - containerPort: 80
           resources:
