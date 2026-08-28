@@ -21,7 +21,7 @@ jobs:
           echo "REPO_LOWER=$(echo "${{ github.repository }}" | tr '[:upper:]' '[:lower:]')" >> $GITHUB_ENV
           echo "ACTOR_LOWER=$(echo "${{ github.actor }}" | tr '[:upper:]' '[:lower:]')" >> $GITHUB_ENV
 
-      # NOVO: Configurar emuladores para permitir build de arquitetura ARM (Oracle Cloud)
+      # Suporte a emulação para gerar binários AMD64 e ARM64 na mesma pipeline
       - name: 🐳 Configurar QEMU
         uses: docker/setup-qemu-action@v3
 
@@ -35,43 +35,43 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      # 1. Build & Push: Nginx
+      # 1. Build & Push Multi-Arch: Nginx
       - name: 🐳 Build e Push - Nginx
         uses: docker/build-push-action@v5
         with:
           context: ./docker_srcs/nginx
           file: ./docker_srcs/nginx/Dockerfile
-          platforms: linux/arm64   # <-- Força o build para o processador da Oracle
+          platforms: linux/amd64,linux/arm64  # <-- MULTI-ARQUITETURA
           push: true
           tags: |
             ghcr.io/${{ env.REPO_LOWER }}/nginx:latest
             ghcr.io/${{ env.REPO_LOWER }}/nginx:${{ github.sha }}
 
-      # 2. Build & Push: Postgres
+      # 2. Build & Push Multi-Arch: Postgres
       - name: 🐳 Build e Push - Postgres
         uses: docker/build-push-action@v5
         with:
           context: ./docker_srcs/postgres
           file: ./docker_srcs/postgres/Dockerfile
-          platforms: linux/arm64
+          platforms: linux/amd64,linux/arm64  # <-- MULTI-ARQUITETURA
           push: true
           tags: |
             ghcr.io/${{ env.REPO_LOWER }}/postgres:latest
             ghcr.io/${{ env.REPO_LOWER }}/postgres:${{ github.sha }}
 
-      # 3. Build & Push: Vault
+      # 3. Build & Push Multi-Arch: Vault
       - name: 🐳 Build e Push - Vault
         uses: docker/build-push-action@v5
         with:
           context: ./docker_srcs/vault
           file: ./docker_srcs/vault/Dockerfile
-          platforms: linux/arm64
+          platforms: linux/amd64,linux/arm64  # <-- MULTI-ARQUITETURA
           push: true
           tags: |
             ghcr.io/${{ env.REPO_LOWER }}/vault:latest
             ghcr.io/${{ env.REPO_LOWER }}/vault:${{ github.sha }}
 
-      # 4. Conexão SSH
+      # 4. Configurar SSH e Kubeconfig
       - name: 🔑 Configurar Chave SSH para o Bastion
         uses: webfactory/ssh-agent@v0.9.0
         with:
@@ -83,12 +83,12 @@ jobs:
           echo "${{ secrets.KUBE_CONFIG }}" | base64 -d > ~/.kube/config
           chmod 600 ~/.kube/config
 
-      # NOVO: Injetar o SHA do commit nos manifestos do Kubernetes
+      # 5. Injetar a tag do commit dinamicamente nos manifestos
       - name: 📝 Substituir tag :latest pelo SHA do commit
         run: |
-          sed -i 's|:latest|:${{ github.sha }}|g' k8s/*.yaml
+          sed -i "s|:latest|:${{ github.sha }}|g" k8s/*.yaml
 
-      # 5. Aplicação no K3s
+      # 6. Aplicação no K3s
       - name: 🚀 Estabelecer Túnel SSH e Aplicar Manifestos no K3s
         run: |
           ssh -o StrictHostKeyChecking=no -f -N -L 6443:${{ secrets.K8S_NODE_IP }}:6443 ubuntu@${{ secrets.BASTION_IP }}
@@ -102,7 +102,7 @@ jobs:
           kubectl --server=https://127.0.0.1:6443 --insecure-skip-tls-verify apply -f k8s/
           kubectl --server=https://127.0.0.1:6443 --insecure-skip-tls-verify rollout status deployment/app-web --timeout=120s
 
-      # 6. Exibir Diagnóstico se houver falha no rollout
+      # 7. Diagnóstico em Caso de Falha
       - name: 🔍 Diagnóstico em Caso de Falha
         if: failure()
         run: |
