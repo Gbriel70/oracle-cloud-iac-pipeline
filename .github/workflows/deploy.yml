@@ -76,5 +76,12 @@ jobs:
       - name: 🚀 Estabelecer Túnel SSH e Aplicar Manifestos no K3s
         run: |
           ssh -o StrictHostKeyChecking=no -f -N -L 6443:${{ secrets.K8S_NODE_IP }}:6443 ubuntu@${{ secrets.BASTION_IP }}
+          
+          # Aplica os arquivos declarativos da pasta k8s/
           kubectl --server=https://127.0.0.1:6443 --insecure-skip-tls-verify apply -f k8s/
-          kubectl --server=https://127.0.0.1:6443 --insecure-skip-tls-verify rollout restart deployment --all
+          
+          # Reinicia todos os deployments do namespace
+          kubectl --server=https://127.0.0.1:6443 --insecure-skip-tls-verify rollout restart deployment
+          
+          # (Opcional) Aguarda a confirmação de subida dos pods
+          kubectl --server=https://127.0.0.1:6443 --insecure-skip-tls-verify rollout status deployment/app-web --timeout=60s
