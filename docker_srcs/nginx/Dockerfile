@@ -6,6 +6,8 @@ RUN apk add --no-cache ca-certificates tzdata && \
 
 COPY nginx.conf /etc/nginx/nginx.conf
 COPY conf.d /etc/nginx/conf.d
+RUN mkdir -p /etc/nginx/templates/conf.d && \
+    cp /etc/nginx/conf.d/default.conf /etc/nginx/templates/conf.d/default.conf.template
 COPY entrypoint.sh /docker-entrypoint-custom.sh
 RUN chmod +x /docker-entrypoint-custom.sh && \
     chown nginx:nginx /docker-entrypoint-custom.sh

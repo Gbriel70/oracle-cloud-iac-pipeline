@@ -18,8 +18,8 @@ spec:
         - name: ghcr-secret
       containers:
         - name: web
-          image: ghcr.io/gbriel70/oracle-cloud-iac-pipeline/nginx:latest
-          imagePullPolicy: Always
+          image: ghcr.io/gbriel70/oracle-cloud-iac-pipeline/nginx:4d0d5cf0dc6eaeb3e2772ca85a089e2824a0f2f1
+          imagePullPolicy: IfNotPresent
           ports:
             - containerPort: 80
           securityContext:
