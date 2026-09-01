@@ -6,6 +6,7 @@ RUN apk add --no-cache ca-certificates tzdata && \
 
 COPY nginx.conf /etc/nginx/nginx.conf
 COPY conf.d /etc/nginx/conf.d
+COPY templates/includes/proxy_backend.conf.template /etc/nginx/templates/includes/proxy_backend.conf.template
 RUN mkdir -p /etc/nginx/templates/conf.d && \
     cp /etc/nginx/conf.d/default.conf /etc/nginx/templates/conf.d/default.conf.template
 COPY entrypoint.sh /docker-entrypoint-custom.sh

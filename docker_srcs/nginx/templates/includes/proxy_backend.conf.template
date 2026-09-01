@@ -1,0 +1,3 @@
+# Custom proxy template for backend service
+# The container must proxy to the Kubernetes Service named backend on port 8080.
+proxy_pass http://backend:8080;
