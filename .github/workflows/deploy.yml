@@ -50,7 +50,19 @@ jobs:
             ghcr.io/${{ env.REPO_LOWER }}/nginx:latest
             ghcr.io/${{ env.REPO_LOWER }}/nginx:${{ github.sha }}
 
-      # 2. Build & Push Multi-Arch: Postgres
+      # 2. Build & Push Multi-Arch: API
+      - name: 🐳 Build e Push - API
+        uses: docker/build-push-action@v6
+        with:
+          context: ./app
+          file: ./app/Dockerfile
+          platforms: linux/amd64,linux/arm64
+          push: true
+          tags: |
+            ghcr.io/${{ env.REPO_LOWER }}/api:latest
+            ghcr.io/${{ env.REPO_LOWER }}/api:${{ github.sha }}
+
+      # 3. Build & Push Multi-Arch: Postgres
       - name: 🐳 Build e Push - Postgres
         uses: docker/build-push-action@v6
         with:
@@ -62,7 +74,7 @@ jobs:
             ghcr.io/${{ env.REPO_LOWER }}/postgres:latest
             ghcr.io/${{ env.REPO_LOWER }}/postgres:${{ github.sha }}
 
-      # 3. Build & Push Multi-Arch: Vault
+      # 4. Build & Push Multi-Arch: Vault
       - name: 🐳 Build e Push - Vault
         uses: docker/build-push-action@v6
         with:
@@ -74,7 +86,7 @@ jobs:
             ghcr.io/${{ env.REPO_LOWER }}/vault:latest
             ghcr.io/${{ env.REPO_LOWER }}/vault:${{ github.sha }}
 
-      # 4. Configurar SSH e Kubeconfig
+      # 5. Configurar SSH e Kubeconfig
       - name: 🔑 Configurar Chave SSH para o Bastion
         uses: webfactory/ssh-agent@v0.9.0
         with:
@@ -86,16 +98,22 @@ jobs:
           echo "${{ secrets.KUBE_CONFIG }}" | base64 -d > ~/.kube/config
           chmod 600 ~/.kube/config
 
-      # 5. Atualizar tags das imagens GHCR para o SHA do commit
+      # 6. Atualizar tags das imagens GHCR para o SHA do commit
       - name: 📝 Ajustar tags das imagens no diretório k8s
         run: |
           sed -i "s|ghcr.io/${{ env.REPO_LOWER }}/nginx:latest|ghcr.io/${{ env.REPO_LOWER }}/nginx:${{ github.sha }}|g" k8s/*.yaml
           sed -i "s|ghcr.io/${{ env.REPO_LOWER }}/api:latest|ghcr.io/${{ env.REPO_LOWER }}/api:${{ github.sha }}|g" k8s/*.yaml
 
-      # 6. Aplicação no K3s
+      # 7. Aplicação no K3s
       - name: 🚀 Estabelecer Túnel SSH e Aplicar Manifestos no K3s
         run: |
-          ssh -o StrictHostKeyChecking=no -f -N -L 6443:${{ secrets.K8S_NODE_IP }}:6443 ubuntu@${{ secrets.BASTION_IP }}
+          if command -v lsof >/dev/null 2>&1; then
+            lsof -ti :6443 | xargs -r kill -9 || true
+          else
+            ss -ltn '( sport = :6443 )' | awk 'NR>1 {print $NF}' | sed 's/.*://g' | xargs -r kill -9 || true
+          fi
+
+          ssh -o StrictHostKeyChecking=no -o ExitOnForwardFailure=yes -f -N -L 127.0.0.1:6443:${{ secrets.K8S_NODE_IP }}:6443 ubuntu@${{ secrets.BASTION_IP }}
 
           export KUBECONFIG="$HOME/.kube/config"
           kubectl --server=https://127.0.0.1:6443 --insecure-skip-tls-verify create secret docker-registry ghcr-secret \
