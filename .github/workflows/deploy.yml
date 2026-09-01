@@ -4,6 +4,9 @@ on:
   push:
     branches: [ main ]
 
+env:
+  ACTIONS_ALLOW_USE_UNSECURE_NODE_VERSION: "true"
+
 permissions:
   contents: read
   packages: write
@@ -37,7 +40,7 @@ jobs:
 
       # 1. Build & Push Multi-Arch: Nginx
       - name: 🐳 Build e Push - Nginx
-        uses: docker/build-push-action@v5
+        uses: docker/build-push-action@v6
         with:
           context: ./docker_srcs/nginx
           file: ./docker_srcs/nginx/Dockerfile
@@ -49,7 +52,7 @@ jobs:
 
       # 2. Build & Push Multi-Arch: Postgres
       - name: 🐳 Build e Push - Postgres
-        uses: docker/build-push-action@v5
+        uses: docker/build-push-action@v6
         with:
           context: ./docker_srcs/postgres
           file: ./docker_srcs/postgres/Dockerfile
@@ -61,7 +64,7 @@ jobs:
 
       # 3. Build & Push Multi-Arch: Vault
       - name: 🐳 Build e Push - Vault
-        uses: docker/build-push-action@v5
+        uses: docker/build-push-action@v6
         with:
           context: ./docker_srcs/vault
           file: ./docker_srcs/vault/Dockerfile

@@ -2,7 +2,6 @@ FROM hashicorp/vault:1.15.6
 
 RUN apk add --no-cache curl bash net-tools wget openssl && \
     mkdir -p /vault/config /vault/tokens && \
-    addgroup -S vault && adduser -S -G vault vault && \
     chown -R vault:vault /vault
 
 COPY config.hcl /vault/config/config.hcl
