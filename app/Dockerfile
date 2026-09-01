@@ -9,9 +9,9 @@ RUN if [ -f package-lock.json ]; then npm ci --omit=dev --no-audit --no-fund; el
 
 COPY . .
 
-RUN addgroup -S app && adduser -S app -G app && chown -R app:app /app
+RUN addgroup -S app && adduser -S app -G app && chown -R 1000:1000 /app
 
 EXPOSE 3000
-USER app
+USER 1000
 
 CMD ["node", "server.js"]
