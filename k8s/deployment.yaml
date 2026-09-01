@@ -21,7 +21,7 @@ spec:
           image: ghcr.io/gbriel70/oracle-cloud-iac-pipeline/nginx:4d0d5cf0dc6eaeb3e2772ca85a089e2824a0f2f1
           imagePullPolicy: IfNotPresent
           ports:
-            - containerPort: 80
+            - containerPort: 8080
           securityContext:
             allowPrivilegeEscalation: false
             runAsNonRoot: true
@@ -34,13 +34,13 @@ spec:
           livenessProbe:
             httpGet:
               path: /health
-              port: 80
+              port: 8080
             initialDelaySeconds: 15
             periodSeconds: 20
           readinessProbe:
             httpGet:
               path: /health
-              port: 80
+              port: 8080
             initialDelaySeconds: 10
             periodSeconds: 10
           resources:
@@ -62,4 +62,4 @@ spec:
   ports:
     - protocol: TCP
       port: 80
-      targetPort: 80
+      targetPort: 8080
