@@ -101,8 +101,8 @@ jobs:
       # 6. Atualizar tags das imagens GHCR para o SHA do commit
       - name: 📝 Ajustar tags das imagens no diretório k8s
         run: |
-          sed -i "s|ghcr.io/${{ env.REPO_LOWER }}/nginx:latest|ghcr.io/${{ env.REPO_LOWER }}/nginx:${{ github.sha }}|g" k8s/*.yaml
-          sed -i "s|ghcr.io/${{ env.REPO_LOWER }}/api:latest|ghcr.io/${{ env.REPO_LOWER }}/api:${{ github.sha }}|g" k8s/*.yaml
+          sed -E -i "s|ghcr.io/[^[:space:]]+/nginx:[A-Za-z0-9._-]+|ghcr.io/${{ env.REPO_LOWER }}/nginx:${{ github.sha }}|g" k8s/*.yaml
+          sed -E -i "s|ghcr.io/[^[:space:]]+/api:[A-Za-z0-9._-]+|ghcr.io/${{ env.REPO_LOWER }}/api:${{ github.sha }}|g" k8s/*.yaml
 
       # 7. Aplicação no K3s
       - name: 🚀 Estabelecer Túnel SSH e Aplicar Manifestos no K3s
@@ -125,6 +125,8 @@ jobs:
             --dry-run=client -o yaml | kubectl --server=https://127.0.0.1:${LOCAL_K8S_PORT} --insecure-skip-tls-verify apply -f -
 
           kubectl --server=https://127.0.0.1:${LOCAL_K8S_PORT} --insecure-skip-tls-verify apply -f k8s/
+          kubectl --server=https://127.0.0.1:${LOCAL_K8S_PORT} --insecure-skip-tls-verify set image deployment/app-web web=ghcr.io/${{ env.REPO_LOWER }}/nginx:${{ github.sha }} --record=true
+          kubectl --server=https://127.0.0.1:${LOCAL_K8S_PORT} --insecure-skip-tls-verify set image deployment/api-backend api=ghcr.io/${{ env.REPO_LOWER }}/api:${{ github.sha }} --record=true
           kubectl --server=https://127.0.0.1:${LOCAL_K8S_PORT} --insecure-skip-tls-verify rollout status deployment/app-web --timeout=180s
           kubectl --server=https://127.0.0.1:${LOCAL_K8S_PORT} --insecure-skip-tls-verify rollout status deployment/api-backend --timeout=180s
 
