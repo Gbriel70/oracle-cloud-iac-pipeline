@@ -107,33 +107,34 @@ jobs:
       # 7. Aplicação no K3s
       - name: 🚀 Estabelecer Túnel SSH e Aplicar Manifestos no K3s
         run: |
+          LOCAL_K8S_PORT=6444
+
           if command -v lsof >/dev/null 2>&1; then
-            lsof -ti :6443 | xargs -r kill -9 || true
+            lsof -ti tcp:${LOCAL_K8S_PORT} | xargs -r kill -9 || true
           else
-            ss -ltn '( sport = :6443 )' | awk 'NR>1 {print $NF}' | sed 's/.*://g' | xargs -r kill -9 || true
+            ss -ltnp "sport = :${LOCAL_K8S_PORT}" 2>/dev/null | awk 'NR>1 {print $NF}' | sed 's/.*pid=//; s/,.*//' | xargs -r kill -9 || true
           fi
 
-          ssh -o StrictHostKeyChecking=no -o ExitOnForwardFailure=yes -f -N -L 127.0.0.1:6443:${{ secrets.K8S_NODE_IP }}:6443 ubuntu@${{ secrets.BASTION_IP }}
+          ssh -o StrictHostKeyChecking=no -o ExitOnForwardFailure=yes -f -N -L 127.0.0.1:${LOCAL_K8S_PORT}:${{ secrets.K8S_NODE_IP }}:6443 ubuntu@${{ secrets.BASTION_IP }}
 
           export KUBECONFIG="$HOME/.kube/config"
-          kubectl --server=https://127.0.0.1:6443 --insecure-skip-tls-verify create secret docker-registry ghcr-secret \
+          kubectl --server=https://127.0.0.1:${LOCAL_K8S_PORT} --insecure-skip-tls-verify create secret docker-registry ghcr-secret \
             --docker-server=ghcr.io \
             --docker-username=${{ env.ACTOR_LOWER }} \
             --docker-password=${{ secrets.GITHUB_TOKEN }} \
-            --dry-run=client -o yaml | kubectl --server=https://127.0.0.1:6443 --insecure-skip-tls-verify apply -f -
+            --dry-run=client -o yaml | kubectl --server=https://127.0.0.1:${LOCAL_K8S_PORT} --insecure-skip-tls-verify apply -f -
 
-          kubectl --server=https://127.0.0.1:6443 --insecure-skip-tls-verify apply -f k8s/
-          kubectl --server=https://127.0.0.1:6443 --insecure-skip-tls-verify rollout status deployment/app-web --timeout=180s
-          kubectl --server=https://127.0.0.1:6443 --insecure-skip-tls-verify rollout status deployment/api-backend --timeout=180s
+          kubectl --server=https://127.0.0.1:${LOCAL_K8S_PORT} --insecure-skip-tls-verify apply -f k8s/
+          kubectl --server=https://127.0.0.1:${LOCAL_K8S_PORT} --insecure-skip-tls-verify rollout status deployment/app-web --timeout=180s
+          kubectl --server=https://127.0.0.1:${LOCAL_K8S_PORT} --insecure-skip-tls-verify rollout status deployment/api-backend --timeout=180s
 
-      # 7. Diagnóstico em Caso de Falha
+      # 8. Diagnóstico em Caso de Falha
       - name: 🔍 Diagnóstico em Caso de Falha
         if: failure()
         run: |
-          ssh -o StrictHostKeyChecking=no -f -N -L 6443:${{ secrets.K8S_NODE_IP }}:6443 ubuntu@${{ secrets.BASTION_IP }} || true
           echo "=== 📌 LISTA DE PODS ==="
-          kubectl --server=https://127.0.0.1:6443 --insecure-skip-tls-verify get pods
+          kubectl --server=https://127.0.0.1:6444 --insecure-skip-tls-verify get pods || true
           echo "=== 📌 DESCRIÇÃO DOS PODS (EVENTOS) ==="
-          kubectl --server=https://127.0.0.1:6443 --insecure-skip-tls-verify describe pods
+          kubectl --server=https://127.0.0.1:6444 --insecure-skip-tls-verify describe pods || true
           echo "=== 📌 LOGS DOS CONTAINERS ==="
-          kubectl --server=https://127.0.0.1:6443 --insecure-skip-tls-verify logs -l app=app-web --tail=50 || true
+          kubectl --server=https://127.0.0.1:6444 --insecure-skip-tls-verify logs -l app=app-web --tail=50 || true
