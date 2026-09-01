@@ -1,20 +1,18 @@
 -- ============================================================================
 -- PostgreSQL Initialization Script
--- Cria usuários, databases e schemas conforme ambiente (dev/prod)
+-- Para produção, credenciais devem ser injectadas por segredo do ambiente/cluster.
 -- ============================================================================
+
+-- O script abaixo cria estruturas básicas e usa placeholders de configuração.
+-- Não devem existir senhas fixas no código-fonte.
 
 -- ============================================================================
 -- PASSO 1: Criar usuários com permissões mínimas
 -- ============================================================================
 
--- Usuário de aplicação (dev) - pode ler/escrever dados
-CREATE ROLE app_dev WITH LOGIN PASSWORD 'dev_password' CREATEROLE;
-
--- Usuário de aplicação (prod) - apenas leitura de dados
-CREATE ROLE app_prod WITH LOGIN PASSWORD 'postgres_pass_prod_secure_123' NOLOGIN;
-
--- Usuário de replicação (para backup/HA) - apenas para conexões de replicação
-CREATE ROLE replication_user WITH LOGIN REPLICATION ENCRYPTED PASSWORD 'replication_secure_pwd';
+CREATE ROLE app_dev WITH LOGIN PASSWORD '${APP_DEV_PASSWORD}' CREATEROLE;
+CREATE ROLE app_prod WITH LOGIN PASSWORD '${APP_PROD_PASSWORD}' NOLOGIN;
+CREATE ROLE replication_user WITH LOGIN REPLICATION ENCRYPTED PASSWORD '${REPLICATION_PASSWORD}';
 
 -- ============================================================================
 -- PASSO 2: Criar databases

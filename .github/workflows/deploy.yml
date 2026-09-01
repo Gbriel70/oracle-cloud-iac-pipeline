@@ -83,16 +83,18 @@ jobs:
           echo "${{ secrets.KUBE_CONFIG }}" | base64 -d > ~/.kube/config
           chmod 600 ~/.kube/config
 
-      # 5. Injetar a tag do commit dinamicamente nos manifestos
-      - name: 📝 Substituir tag :latest pelo SHA do commit
+      # 5. Atualizar tags das imagens GHCR para o SHA do commit
+      - name: 📝 Ajustar tags das imagens no diretório k8s
         run: |
-          sed -i "s|:latest|:${{ github.sha }}|g" k8s/*.yaml
+          sed -i "s|ghcr.io/${{ env.REPO_LOWER }}/nginx:latest|ghcr.io/${{ env.REPO_LOWER }}/nginx:${{ github.sha }}|g" k8s/*.yaml
+          sed -i "s|ghcr.io/${{ env.REPO_LOWER }}/api:latest|ghcr.io/${{ env.REPO_LOWER }}/api:${{ github.sha }}|g" k8s/*.yaml
 
       # 6. Aplicação no K3s
       - name: 🚀 Estabelecer Túnel SSH e Aplicar Manifestos no K3s
         run: |
           ssh -o StrictHostKeyChecking=no -f -N -L 6443:${{ secrets.K8S_NODE_IP }}:6443 ubuntu@${{ secrets.BASTION_IP }}
-          
+
+          export KUBECONFIG="$HOME/.kube/config"
           kubectl --server=https://127.0.0.1:6443 --insecure-skip-tls-verify create secret docker-registry ghcr-secret \
             --docker-server=ghcr.io \
             --docker-username=${{ env.ACTOR_LOWER }} \
@@ -100,7 +102,8 @@ jobs:
             --dry-run=client -o yaml | kubectl --server=https://127.0.0.1:6443 --insecure-skip-tls-verify apply -f -
 
           kubectl --server=https://127.0.0.1:6443 --insecure-skip-tls-verify apply -f k8s/
-          kubectl --server=https://127.0.0.1:6443 --insecure-skip-tls-verify rollout status deployment/app-web --timeout=120s
+          kubectl --server=https://127.0.0.1:6443 --insecure-skip-tls-verify rollout status deployment/app-web --timeout=180s
+          kubectl --server=https://127.0.0.1:6443 --insecure-skip-tls-verify rollout status deployment/api-backend --timeout=180s
 
       # 7. Diagnóstico em Caso de Falha
       - name: 🔍 Diagnóstico em Caso de Falha

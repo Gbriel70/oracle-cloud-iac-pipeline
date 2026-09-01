@@ -1,0 +1,13 @@
+{
+  "name": "api-backend",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Backend API para K3s",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "engines": {
+    "node": ">=20.0.0"
+  }
+}
