@@ -117,18 +117,51 @@ jobs:
 
           ssh -o StrictHostKeyChecking=no \
             -o ExitOnForwardFailure=yes \
+            -o BatchMode=yes \
+            -o ConnectTimeout=10 \
             -o ServerAliveInterval=15 \
             -o ServerAliveCountMax=3 \
             -J ubuntu@${{ secrets.BASTION_IP }} \
             -N -L 127.0.0.1:${LOCAL_K8S_PORT}:127.0.0.1:6443 \
-            ubuntu@${{ secrets.K8S_NODE_IP }} &
+            ubuntu@${{ secrets.K8S_NODE_IP }} >/tmp/k3s-tunnel.log 2>&1 &
           SSH_TUNNEL_PID=$!
           trap 'kill "$SSH_TUNNEL_PID" 2>/dev/null || true' EXIT
 
-          timeout 30 bash -c 'until (echo > /dev/tcp/127.0.0.1/6444) 2>/dev/null; do sleep 1; done'
+          TUNNEL_READY=false
+          for attempt in $(seq 1 30); do
+            if ! kill -0 "$SSH_TUNNEL_PID" 2>/dev/null; then
+              echo "SSH tunnel exited before opening local port ${LOCAL_K8S_PORT}."
+              cat /tmp/k3s-tunnel.log
+              exit 1
+            fi
+            if (echo > /dev/tcp/127.0.0.1/${LOCAL_K8S_PORT}) 2>/dev/null; then
+              TUNNEL_READY=true
+              break
+            fi
+            sleep 1
+          done
+
+          if [ "$TUNNEL_READY" != true ]; then
+            echo "Timed out waiting for local port ${LOCAL_K8S_PORT}."
+            cat /tmp/k3s-tunnel.log
+            exit 1
+          fi
 
           export KUBECONFIG="$HOME/.kube/config"
-          kubectl --server=https://127.0.0.1:${LOCAL_K8S_PORT} --insecure-skip-tls-verify get --raw=/readyz
+          READY=false
+          for attempt in $(seq 1 10); do
+            if kubectl --server=https://127.0.0.1:${LOCAL_K8S_PORT} --insecure-skip-tls-verify get --raw=/readyz; then
+              READY=true
+              break
+            fi
+            sleep 2
+          done
+
+          if [ "$READY" != true ]; then
+            echo "K3s API did not become ready through the SSH tunnel."
+            cat /tmp/k3s-tunnel.log
+            exit 1
+          fi
 
           kubectl --server=https://127.0.0.1:${LOCAL_K8S_PORT} --insecure-skip-tls-verify create secret docker-registry ghcr-secret \
             --docker-server=ghcr.io \
