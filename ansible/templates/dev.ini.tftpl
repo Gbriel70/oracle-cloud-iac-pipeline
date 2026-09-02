@@ -1,4 +1,4 @@
-[bastion]
+[bastion_hosts]
 %{ if enable_bastion ~}
 bastion ansible_host=${bastion_public_ip}
 %{ endif ~}
@@ -8,19 +8,11 @@ bastion ansible_host=${bastion_public_ip}
 k8s-${index + 1} ansible_host=${ip}
 %{ endfor ~}
 
-[database]
-database ansible_host=${database_private_ip}
-
 [all:vars]
 ansible_user=${ansible_user}
 ansible_ssh_private_key_file=${ansible_private_key_file}
 
 [kubernetes:vars]
-%{ if enable_bastion ~}
-ansible_ssh_common_args='-o ProxyJump=${ansible_user}@${bastion_public_ip}'
-%{ endif ~}
-
-[database:vars]
 %{ if enable_bastion ~}
 ansible_ssh_common_args='-o ProxyJump=${ansible_user}@${bastion_public_ip}'
 %{ endif ~}

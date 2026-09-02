@@ -17,10 +17,9 @@ if ! command -v python3 >/dev/null 2>&1; then
 fi
 
 BASTION_IP="$(terraform -chdir="$TERRAFORM_DIR" output -raw bastion_public_ip 2>/dev/null || true)"
-DATABASE_IP="$(terraform -chdir="$TERRAFORM_DIR" output -raw database_private_ip 2>/dev/null || true)"
 K8S_IPS_JSON="$(terraform -chdir="$TERRAFORM_DIR" output -json kubernetes_node_private_ips 2>/dev/null || true)"
 
-if [[ -z "$BASTION_IP" || -z "$DATABASE_IP" || -z "$K8S_IPS_JSON" ]]; then
+if [[ -z "$BASTION_IP" || -z "$K8S_IPS_JSON" ]]; then
   echo "Não consegui ler os outputs do Terraform. Rode terraform apply antes."
   exit 1
 fi
@@ -39,7 +38,7 @@ if [[ ${#K8S_IPS[@]} -eq 0 ]]; then
 fi
 
 {
-  echo "[bastion]"
+  echo "[bastion_hosts]"
   echo "bastion ansible_host=${BASTION_IP}"
   echo
   echo "[kubernetes]"
@@ -47,17 +46,11 @@ fi
     echo "k8s-$((index + 1)) ansible_host=${K8S_IPS[$index]}"
   done
   echo
-  echo "[database]"
-  echo "database ansible_host=${DATABASE_IP}"
-  echo
   echo "[all:vars]"
   echo "ansible_user=ubuntu"
   echo "ansible_ssh_private_key_file=${SSH_PRIVATE_KEY_FILE}"
   echo
   echo "[kubernetes:vars]"
-  echo "ansible_ssh_common_args='-o ProxyJump=ubuntu@${BASTION_IP}'"
-  echo
-  echo "[database:vars]"
   echo "ansible_ssh_common_args='-o ProxyJump=ubuntu@${BASTION_IP}'"
 } > "$INVENTORY_FILE"
 

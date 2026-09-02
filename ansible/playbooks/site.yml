@@ -5,13 +5,6 @@
   roles:
     - base
 
-- name: Subir a stack de aplicações (Nginx, Postgres, Vault)
-  hosts: database
-  become: true
-  roles:
-    - docker
-    - app_stack
-
 - name: Preparar nós Kubernetes
   hosts: kubernetes
   become: true
