@@ -115,9 +115,21 @@ jobs:
             ss -ltnp "sport = :${LOCAL_K8S_PORT}" 2>/dev/null | awk 'NR>1 {print $NF}' | sed 's/.*pid=//; s/,.*//' | xargs -r kill -9 || true
           fi
 
-          ssh -o StrictHostKeyChecking=no -o ExitOnForwardFailure=yes -f -N -L 127.0.0.1:${LOCAL_K8S_PORT}:${{ secrets.K8S_NODE_IP }}:6443 ubuntu@${{ secrets.BASTION_IP }}
+          ssh -o StrictHostKeyChecking=no \
+            -o ExitOnForwardFailure=yes \
+            -o ServerAliveInterval=15 \
+            -o ServerAliveCountMax=3 \
+            -J ubuntu@${{ secrets.BASTION_IP }} \
+            -N -L 127.0.0.1:${LOCAL_K8S_PORT}:127.0.0.1:6443 \
+            ubuntu@${{ secrets.K8S_NODE_IP }} &
+          SSH_TUNNEL_PID=$!
+          trap 'kill "$SSH_TUNNEL_PID" 2>/dev/null || true' EXIT
+
+          timeout 30 bash -c 'until (echo > /dev/tcp/127.0.0.1/6444) 2>/dev/null; do sleep 1; done'
 
           export KUBECONFIG="$HOME/.kube/config"
+          kubectl --server=https://127.0.0.1:${LOCAL_K8S_PORT} --insecure-skip-tls-verify get --raw=/readyz
+
           kubectl --server=https://127.0.0.1:${LOCAL_K8S_PORT} --insecure-skip-tls-verify create secret docker-registry ghcr-secret \
             --docker-server=ghcr.io \
             --docker-username=${{ env.ACTOR_LOWER }} \
