@@ -116,12 +116,14 @@ jobs:
           fi
 
           ssh -o StrictHostKeyChecking=no \
+            -o UserKnownHostsFile=/dev/null \
+            -o GlobalKnownHostsFile=/dev/null \
             -o ExitOnForwardFailure=yes \
             -o BatchMode=yes \
             -o ConnectTimeout=10 \
             -o ServerAliveInterval=15 \
             -o ServerAliveCountMax=3 \
-            -J ubuntu@${{ secrets.BASTION_IP }} \
+            -o ProxyCommand="ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o GlobalKnownHostsFile=/dev/null -o BatchMode=yes -W %h:%p ubuntu@${{ secrets.BASTION_IP }}" \
             -N -L 127.0.0.1:${LOCAL_K8S_PORT}:127.0.0.1:6443 \
             ubuntu@${{ secrets.K8S_NODE_IP }} >/tmp/k3s-tunnel.log 2>&1 &
           SSH_TUNNEL_PID=$!
@@ -188,12 +190,14 @@ jobs:
         run: |
           LOCAL_K8S_PORT=6445
           ssh -o StrictHostKeyChecking=no \
+            -o UserKnownHostsFile=/dev/null \
+            -o GlobalKnownHostsFile=/dev/null \
             -o BatchMode=yes \
             -o ConnectTimeout=10 \
             -o ExitOnForwardFailure=yes \
             -o ServerAliveInterval=15 \
             -o ServerAliveCountMax=3 \
-            -J ubuntu@${{ secrets.BASTION_IP }} \
+            -o ProxyCommand="ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o GlobalKnownHostsFile=/dev/null -o BatchMode=yes -W %h:%p ubuntu@${{ secrets.BASTION_IP }}" \
             -N -L 127.0.0.1:${LOCAL_K8S_PORT}:127.0.0.1:6443 \
             ubuntu@${{ secrets.K8S_NODE_IP }} >/tmp/k3s-diagnostic-tunnel.log 2>&1 &
           SSH_TUNNEL_PID=$!
