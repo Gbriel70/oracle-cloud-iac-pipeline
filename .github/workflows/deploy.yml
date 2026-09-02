@@ -186,9 +186,38 @@ jobs:
       - name: 🔍 Diagnóstico em Caso de Falha
         if: failure()
         run: |
+          LOCAL_K8S_PORT=6445
+          ssh -o StrictHostKeyChecking=no \
+            -o BatchMode=yes \
+            -o ConnectTimeout=10 \
+            -o ExitOnForwardFailure=yes \
+            -o ServerAliveInterval=15 \
+            -o ServerAliveCountMax=3 \
+            -J ubuntu@${{ secrets.BASTION_IP }} \
+            -N -L 127.0.0.1:${LOCAL_K8S_PORT}:127.0.0.1:6443 \
+            ubuntu@${{ secrets.K8S_NODE_IP }} >/tmp/k3s-diagnostic-tunnel.log 2>&1 &
+          SSH_TUNNEL_PID=$!
+          trap 'kill "$SSH_TUNNEL_PID" 2>/dev/null || true' EXIT
+
+          for attempt in $(seq 1 15); do
+            if ! kill -0 "$SSH_TUNNEL_PID" 2>/dev/null; then
+              echo "=== ERRO AO ABRIR TUNEL DE DIAGNOSTICO ==="
+              cat /tmp/k3s-diagnostic-tunnel.log
+              break
+            fi
+            if (echo > /dev/tcp/127.0.0.1/${LOCAL_K8S_PORT}) 2>/dev/null; then
+              break
+            fi
+            sleep 1
+          done
+
+          export KUBECONFIG="$HOME/.kube/config"
+          KUBECTL_ARGS=(--server=https://127.0.0.1:${LOCAL_K8S_PORT} --insecure-skip-tls-verify)
           echo "=== 📌 LISTA DE PODS ==="
-          kubectl --server=https://127.0.0.1:6444 --insecure-skip-tls-verify get pods || true
+          kubectl "${KUBECTL_ARGS[@]}" get pods || true
           echo "=== 📌 DESCRIÇÃO DOS PODS (EVENTOS) ==="
-          kubectl --server=https://127.0.0.1:6444 --insecure-skip-tls-verify describe pods || true
+          kubectl "${KUBECTL_ARGS[@]}" describe pods || true
           echo "=== 📌 LOGS DOS CONTAINERS ==="
-          kubectl --server=https://127.0.0.1:6444 --insecure-skip-tls-verify logs -l app=app-web --tail=50 || true
+          kubectl "${KUBECTL_ARGS[@]}" logs -l app=app-web --tail=50 || true
+          echo "=== 📌 LOG DO TÚNEL ==="
+          cat /tmp/k3s-diagnostic-tunnel.log || true
