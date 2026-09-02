@@ -125,8 +125,8 @@ jobs:
             --dry-run=client -o yaml | kubectl --server=https://127.0.0.1:${LOCAL_K8S_PORT} --insecure-skip-tls-verify apply -f -
 
           kubectl --server=https://127.0.0.1:${LOCAL_K8S_PORT} --insecure-skip-tls-verify apply -f k8s/
-          kubectl --server=https://127.0.0.1:${LOCAL_K8S_PORT} --insecure-skip-tls-verify set image deployment/app-web web=ghcr.io/${{ env.REPO_LOWER }}/nginx:${{ github.sha }} --record=true
-          kubectl --server=https://127.0.0.1:${LOCAL_K8S_PORT} --insecure-skip-tls-verify set image deployment/api-backend api=ghcr.io/${{ env.REPO_LOWER }}/api:${{ github.sha }} --record=true
+          kubectl --server=https://127.0.0.1:${LOCAL_K8S_PORT} --insecure-skip-tls-verify set image deployment/app-web web=ghcr.io/${{ env.REPO_LOWER }}/nginx:${{ github.sha }}
+          kubectl --server=https://127.0.0.1:${LOCAL_K8S_PORT} --insecure-skip-tls-verify set image deployment/api-backend api=ghcr.io/${{ env.REPO_LOWER }}/api:${{ github.sha }}
           kubectl --server=https://127.0.0.1:${LOCAL_K8S_PORT} --insecure-skip-tls-verify rollout status deployment/app-web --timeout=180s
           kubectl --server=https://127.0.0.1:${LOCAL_K8S_PORT} --insecure-skip-tls-verify rollout status deployment/api-backend --timeout=180s
 
