@@ -62,31 +62,7 @@ jobs:
             ghcr.io/${{ env.REPO_LOWER }}/api:latest
             ghcr.io/${{ env.REPO_LOWER }}/api:${{ github.sha }}
 
-      # 3. Build & Push Multi-Arch: Postgres
-      - name: 🐳 Build e Push - Postgres
-        uses: docker/build-push-action@v6
-        with:
-          context: ./docker_srcs/postgres
-          file: ./docker_srcs/postgres/Dockerfile
-          platforms: linux/amd64,linux/arm64  # <-- MULTI-ARQUITETURA
-          push: true
-          tags: |
-            ghcr.io/${{ env.REPO_LOWER }}/postgres:latest
-            ghcr.io/${{ env.REPO_LOWER }}/postgres:${{ github.sha }}
-
-      # 4. Build & Push Multi-Arch: Vault
-      - name: 🐳 Build e Push - Vault
-        uses: docker/build-push-action@v6
-        with:
-          context: ./docker_srcs/vault
-          file: ./docker_srcs/vault/Dockerfile
-          platforms: linux/amd64,linux/arm64  # <-- MULTI-ARQUITETURA
-          push: true
-          tags: |
-            ghcr.io/${{ env.REPO_LOWER }}/vault:latest
-            ghcr.io/${{ env.REPO_LOWER }}/vault:${{ github.sha }}
-
-      # 5. Configurar SSH e Kubeconfig
+      # 3. Configurar SSH e Kubeconfig
       - name: 🔑 Configurar Chave SSH para o Bastion
         uses: webfactory/ssh-agent@v0.9.0
         with:
@@ -106,6 +82,10 @@ jobs:
 
       # 7. Aplicação no K3s
       - name: 🚀 Estabelecer Túnel SSH e Aplicar Manifestos no K3s
+        env:
+          POSTGRES_USER: ${{ secrets.POSTGRES_USER }}
+          POSTGRES_PASSWORD: ${{ secrets.POSTGRES_PASSWORD }}
+          POSTGRES_DB: ${{ secrets.POSTGRES_DB }}
         run: |
           LOCAL_K8S_PORT=6444
 
@@ -165,9 +145,9 @@ jobs:
             exit 1
           fi
 
-          test -n "${{ secrets.POSTGRES_USER }}" || { echo "POSTGRES_USER GitHub Secret is missing"; exit 1; }
-          test -n "${{ secrets.POSTGRES_PASSWORD }}" || { echo "POSTGRES_PASSWORD GitHub Secret is missing"; exit 1; }
-          test -n "${{ secrets.POSTGRES_DB }}" || { echo "POSTGRES_DB GitHub Secret is missing"; exit 1; }
+          test -n "$POSTGRES_USER" || { echo "POSTGRES_USER GitHub Secret is missing"; exit 1; }
+          test -n "$POSTGRES_PASSWORD" || { echo "POSTGRES_PASSWORD GitHub Secret is missing"; exit 1; }
+          test -n "$POSTGRES_DB" || { echo "POSTGRES_DB GitHub Secret is missing"; exit 1; }
 
           kubectl --server=https://127.0.0.1:${LOCAL_K8S_PORT} --insecure-skip-tls-verify create secret docker-registry ghcr-secret \
             --docker-server=ghcr.io \
@@ -176,9 +156,9 @@ jobs:
             --dry-run=client -o yaml | kubectl --server=https://127.0.0.1:${LOCAL_K8S_PORT} --insecure-skip-tls-verify apply -f -
 
           kubectl --server=https://127.0.0.1:${LOCAL_K8S_PORT} --insecure-skip-tls-verify create secret generic app-secrets \
-            --from-literal=POSTGRES_USER='${{ secrets.POSTGRES_USER }}' \
-            --from-literal=POSTGRES_PASSWORD='${{ secrets.POSTGRES_PASSWORD }}' \
-            --from-literal=POSTGRES_DB='${{ secrets.POSTGRES_DB }}' \
+            --from-literal=POSTGRES_USER="$POSTGRES_USER" \
+            --from-literal=POSTGRES_PASSWORD="$POSTGRES_PASSWORD" \
+            --from-literal=POSTGRES_DB="$POSTGRES_DB" \
             --dry-run=client -o yaml | kubectl --server=https://127.0.0.1:${LOCAL_K8S_PORT} --insecure-skip-tls-verify apply -f -
 
           kubectl --server=https://127.0.0.1:${LOCAL_K8S_PORT} --insecure-skip-tls-verify apply -f k8s/

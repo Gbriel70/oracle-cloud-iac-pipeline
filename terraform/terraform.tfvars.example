@@ -1,0 +1,14 @@
+# Copy to terraform.tfvars locally. Never commit real credentials.
+tenancy_ocid     = "ocid1.tenancy.oc1..example"
+user_ocid        = "ocid1.user.oc1..example"
+fingerprint      = "00:00:00:00:00:00:00:00:00:00:00:00:00:00:00:00"
+private_key_path = "/home/user/.oci/api_key.pem"
+compartment_id   = "ocid1.compartment.oc1..example"
+ssh_public_key_path = "/home/user/.ssh/id_rsa.pub"
+region           = "sa-saopaulo-1"
+environment      = "dev"
+owner            = "user@example.com"
+allowed_ssh_cidrs = ["203.0.113.10/32"]
+image_ocid       = ""
+kubernetes_node_count = 1
+project_name     = "devopsec-pipeline"

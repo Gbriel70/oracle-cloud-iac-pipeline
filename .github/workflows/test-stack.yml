@@ -4,7 +4,7 @@ on:
   push:
     branches: [ main ]
     paths:
-      - 'docker-compose.yml'
+      - 'docker_srcs/docker-compose.yml'
       - 'docker_srcs/**'
       - 'secrets/**'
       - '.github/workflows/test-stack.yml'
@@ -15,6 +15,7 @@ on:
 env:
   REGISTRY: ghcr.io
   COMPOSE_PROJECT_NAME: devopsec-test
+  COMPOSE_FILE: docker_srcs/docker-compose.yml
 
 jobs:
   build-and-test:
@@ -64,25 +65,25 @@ jobs:
             sleep 2
           done
 
-      - name: 🔌 Teste: PostgreSQL respondendo
+      - name: "🔌 Teste: PostgreSQL respondendo"
         run: |
           echo "🧪 Testando PostgreSQL..."
           docker compose exec -T postgres pg_isready -U postgres || exit 1
           echo "✅ PostgreSQL está respondendo"
 
-      - name: 🔐 Teste: Vault respondendo
+      - name: "🔐 Teste: Vault respondendo"
         run: |
           echo "🧪 Testando Vault..."
           curl -s http://localhost:8200/v1/sys/health | jq . || exit 1
           echo "✅ Vault está respondendo"
 
-      - name: 🌐 Teste: Nginx respondendo
+      - name: "🌐 Teste: Nginx respondendo"
         run: |
           echo "🧪 Testando Nginx..."
           curl -s http://localhost:80/ || true
           echo "✅ Nginx está respondendo (ou retornou erro esperado)"
 
-      - name: 📋 Teste: Conectividade entre redes
+      - name: "📋 Teste: Conectividade entre redes"
         run: |
           echo "🧪 Testando conectividade entre containers..."
 
@@ -127,7 +128,7 @@ jobs:
       - name: 📥 Checkout código
         uses: actions/checkout@v4
 
-      - name: 🔒 Scan: Secrets em código
+      - name: "🔒 Scan: Secrets em código"
         run: |
           echo "🔍 Verificando se há secrets no código..."
           # Verifica se há padrões comuns de secrets
@@ -160,7 +161,7 @@ jobs:
       - name: 🐳 Build para scan
         run: docker compose build
 
-      - name: 🔒 Scan: Vulnerabilidades em Dockerfiles
+      - name: "🔒 Scan: Vulnerabilidades em Dockerfiles"
         run: |
           echo "🔍 Verificando problemas comuns em Dockerfiles..."
 
@@ -188,7 +189,7 @@ jobs:
           echo "📋 Verificando estrutura do projeto..."
 
           required_files=(
-            "docker-compose.yml"
+            "docker_srcs/docker-compose.yml"
             "docker_srcs/postgres/Dockerfile"
             "docker_srcs/vault/Dockerfile"
             "docker_srcs/nginx/Dockerfile"

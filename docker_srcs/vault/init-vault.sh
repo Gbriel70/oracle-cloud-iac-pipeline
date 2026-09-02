@@ -126,7 +126,7 @@ exec vault server -config=/vault/config/config.hcl
   # Lê de Docker secrets ou variáveis de ambiente
 
   PG_PROD_USER=$(read_secret "postgres_prod_user" "postgres_user_prod")
-  PG_PROD_PASS=$(read_secret "postgres_prod_password" "postgres_secure_password_123")
+  PG_PROD_PASS=$(read_secret "postgres_prod_password" "")
   PG_PROD_HOST=$(read_secret "postgres_prod_host" "postgres")
   PG_PROD_PORT=$(read_secret "postgres_prod_port" "5432")
   PG_PROD_DB=$(read_secret "postgres_prod_database" "app_db")
@@ -148,7 +148,7 @@ exec vault server -config=/vault/config/config.hcl
   # =====================================================================
 
   PG_DEV_USER=$(read_secret "postgres_dev_user" "dev_user")
-  PG_DEV_PASS=$(read_secret "postgres_dev_password" "dev_password")
+  PG_DEV_PASS=$(read_secret "postgres_dev_password" "")
   PG_DEV_HOST=$(read_secret "postgres_dev_host" "postgres")
   PG_DEV_PORT=$(read_secret "postgres_dev_port" "5432")
   PG_DEV_DB=$(read_secret "postgres_dev_database" "app_db_dev")
@@ -169,7 +169,7 @@ exec vault server -config=/vault/config/config.hcl
   # Secret 3: API Keys
   # =====================================================================
 
-  SENDGRID_API_KEY=$(read_secret "sendgrid_api_key" "SG.xxxx_seu_token_aqui_xxxx")
+  SENDGRID_API_KEY=$(read_secret "sendgrid_api_key" "")
   SENDGRID_EMAIL=$(read_secret "sendgrid_from_email" "noreply@seuapp.com")
 
   vault kv put secret/api-keys/sendgrid \

@@ -39,8 +39,8 @@ Success! Configuration is valid.
 
 - **25 variáveis de entrada** (credenciais, networking, compute, storage, security)
 - **3 Network Security Groups** (firewalls a nível de VM)
-- **3 tipos de instâncias** (Bastion, K8s nodes, Database)
-- **1 Block Volume** (PostgreSQL persistent storage)
+- **2 tipos de instâncias** (Bastion e K3s)
+- **PVC Kubernetes** (PostgreSQL persistent storage)
 - **~500 linhas de código** bem comentado
 
 ### Conceitos Implementados
@@ -51,12 +51,12 @@ Success! Configuration is valid.
 ┌─ Camada 1: Network (NSGs)
 │  ├─ Bastion NSG: SSH (22) apenas de seu IP
 │  ├─ Kubernetes NSG: HTTP/HTTPS públicos, SSH via Bastion
-│  └─ Database NSG: PostgreSQL apenas de K8s, SSH via Bastion
+│  └─ PostgreSQL: interno ao K3s, sem exposição pública
 │
 ├─ Camada 2: Architecture Pattern
 │  ├─ Bastion Host (jump box) para acesso SSH seguro
 │  ├─ ProxyJump SSH para VMs internas
-│  └─ All-in-one subnet (Always Free - sem NAT Gateway)
+│  └─ Bastion e K3s na subnet pública controlada por NSG
 │
 └─ Camada 3: Infrastructure as Code
    ├─ Terraform modulado por responsabilidade

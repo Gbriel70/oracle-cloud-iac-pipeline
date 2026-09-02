@@ -21,16 +21,15 @@
 │  │  │  │(SSH Jump)│  │          │            │ │          │
 │  │  │  └──────────┘  └──────────┘            │ │          │
 │  │  │                                        │ │          │
-│  │  │  ┌──────────┐  ┌──────────┐            │ │          │
-│  │  │  │ Database │  │   K8s    │            │ │          │
-│  │  │  │   VM     │  │  Node 1  │            │ │          │
-│  │  │  │+Block Vol│  │          │            │ │          │
-│  │  │  └──────────┘  └──────────┘            │ │          │
+│  │  │  ┌──────────┐                          │ │          │
+│  │  │  │   K8s    │                          │ │          │
+│  │  │  │ Node 1   │                          │ │          │
+│  │  │  │+PVC      │                          │ │          │
+│  │  │  └──────────┘                          │ │          │
 │  │  │                                        │ │          │
 │  │  │  NSG (Firewalls):                      │ │          │
 │  │  │  ├─ Bastion NSG        (port 22)      │ │          │
-│  │  │  ├─ Kubernetes NSG     (80, 443, 22)  │ │          │
-│  │  │  └─ Database NSG       (5432, 22)     │ │          │
+│  │  │  └─ Kubernetes NSG     (80, 443, 22)  │ │          │
 │  │  │                                        │ │          │
 │  │  └────────────────────────────────────────┘ │          │
 │  │                                              │          │
@@ -68,8 +67,7 @@ image_ocid ← VOCÊ PRECISA PREENCHER!
 # SSH
 ssh_public_key_path
 
-# Storage
-postgresql_volume_size_gb
+# Storage is managed by the PostgreSQL PVC in Kubernetes.
 
 # Security
 allowed_ssh_cidrs
@@ -77,11 +75,11 @@ allowed_ssh_cidrs
 
 ### 3. **networking.tf** - VCN + Security Groups
 - **VCN**: 10.0.0.0/16 com Internet Gateway
-- **Public Subnet**: 10.0.1.0/24 (todas as VMs aqui - Always Free limit)
+- **Public Subnet**: 10.0.1.0/24 (Bastion e node K3s público)
+- **Private Subnet**: 10.0.2.0/24 (reservada para futuras cargas internas)
 - **Network Security Groups (NSGs)**:
   - **Bastion NSG**: SSH (22) apenas do seu IP
   - **Kubernetes NSG**: HTTP (80), HTTPS (443), SSH (22) do Bastion, K8s API (6443) da VCN
-  - **Database NSG**: PostgreSQL (5432) apenas de K8s, SSH (22) do Bastion
 
 ### 4. **compute.tf** - Instâncias VM
 - **Bastion Host**: VM.Standard.A1.Flex (2 OCPUs, 12GB RAM) - Count-based

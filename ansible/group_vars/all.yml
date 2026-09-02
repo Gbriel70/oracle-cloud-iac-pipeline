@@ -17,9 +17,3 @@ kubernetes_version: "1.30"
 k3s_version: "v1.30.4+k3s1"
 package_architecture: >-
   {{ 'arm64' if ansible_architecture in ['aarch64', 'arm64'] else 'amd64' }}
-
-postgresql_data_device: /dev/oracleoci/oraclevdb
-postgresql_data_mount_point: /var/lib/postgresql/14/main
-postgresql_database_name: appdb
-postgresql_user: appuser
-postgresql_password: change-me-in-vault
