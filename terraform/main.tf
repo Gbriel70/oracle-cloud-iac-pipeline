@@ -105,7 +105,6 @@ locals {
     bastion_public_ip        = var.enable_bastion ? oci_core_instance.bastion[0].public_ip : ""
     enable_bastion           = var.enable_bastion
     kubernetes_node_ips      = oci_core_instance.kubernetes_node[*].private_ip
-    database_private_ip      = oci_core_instance.database[0].private_ip
   })
 }
 

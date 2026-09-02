@@ -103,9 +103,8 @@ variable "enable_bastion" {
 variable "kubernetes_node_count" {
   description = "Quantos nós Kubernetes criar?"
   type        = number
-  default     = 3
-  # Mínimo recomendado: 3 (1 master + 2 workers)
-  # Dev: 1 é OK, Prod: 3+ para alta disponibilidade
+  default     = 1
+  # Um node cabe no desenho econômico atual; adicione workers ao escalar.
 
   validation {
     condition     = var.kubernetes_node_count >= 1 && var.kubernetes_node_count <= 10
@@ -139,21 +138,6 @@ variable "image_ocid" {
   description = "OCID da imagem Ubuntu 22.04 aarch64-minimal. Se vazio, o Terraform tenta localizar uma imagem compatível automaticamente."
   type        = string
   default     = ""
-}
-
-# ============================================================================
-# STORAGE
-# ============================================================================
-
-variable "postgresql_volume_size_gb" {
-  description = "Tamanho do volume para PostgreSQL (em GB)"
-  type        = number
-  default     = 50
-
-  validation {
-    condition     = var.postgresql_volume_size_gb >= 10 && var.postgresql_volume_size_gb <= 50
-    error_message = "Volume deve ter entre 10GB e 50GB."
-  }
 }
 
 # ============================================================================

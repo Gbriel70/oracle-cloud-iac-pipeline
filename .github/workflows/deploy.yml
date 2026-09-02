@@ -124,11 +124,18 @@ jobs:
             --docker-password=${{ secrets.GITHUB_TOKEN }} \
             --dry-run=client -o yaml | kubectl --server=https://127.0.0.1:${LOCAL_K8S_PORT} --insecure-skip-tls-verify apply -f -
 
+          kubectl --server=https://127.0.0.1:${LOCAL_K8S_PORT} --insecure-skip-tls-verify create secret generic app-secrets \
+            --from-literal=POSTGRES_USER='${{ secrets.POSTGRES_USER }}' \
+            --from-literal=POSTGRES_PASSWORD='${{ secrets.POSTGRES_PASSWORD }}' \
+            --from-literal=POSTGRES_DB='${{ secrets.POSTGRES_DB }}' \
+            --dry-run=client -o yaml | kubectl --server=https://127.0.0.1:${LOCAL_K8S_PORT} --insecure-skip-tls-verify apply -f -
+
           kubectl --server=https://127.0.0.1:${LOCAL_K8S_PORT} --insecure-skip-tls-verify apply -f k8s/
           kubectl --server=https://127.0.0.1:${LOCAL_K8S_PORT} --insecure-skip-tls-verify set image deployment/app-web web=ghcr.io/${{ env.REPO_LOWER }}/nginx:${{ github.sha }}
           kubectl --server=https://127.0.0.1:${LOCAL_K8S_PORT} --insecure-skip-tls-verify set image deployment/api-backend api=ghcr.io/${{ env.REPO_LOWER }}/api:${{ github.sha }}
           kubectl --server=https://127.0.0.1:${LOCAL_K8S_PORT} --insecure-skip-tls-verify rollout status deployment/app-web --timeout=180s
           kubectl --server=https://127.0.0.1:${LOCAL_K8S_PORT} --insecure-skip-tls-verify rollout status deployment/api-backend --timeout=180s
+          kubectl --server=https://127.0.0.1:${LOCAL_K8S_PORT} --insecure-skip-tls-verify rollout status statefulset/postgres --timeout=180s
 
       # 8. Diagnóstico em Caso de Falha
       - name: 🔍 Diagnóstico em Caso de Falha

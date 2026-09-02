@@ -105,7 +105,6 @@ resource "oci_core_subnet" "private" {
   dns_label      = "private"
 
   route_table_id             = oci_core_route_table.private.id
-  security_list_ids          = []
   prohibit_public_ip_on_vnic = true
 
   freeform_tags = merge(
@@ -245,59 +244,6 @@ resource "oci_core_network_security_group_security_rule" "k8s_egress" {
   protocol                  = "all"
   destination               = "0.0.0.0/0"
   description               = "Outbound traffic"
-}
-
-# ============================================================================
-# NSG para DATABASE (PostgreSQL) - muito restritivo
-# ============================================================================
-
-resource "oci_core_network_security_group" "database" {
-  compartment_id = var.compartment_id
-  vcn_id         = oci_core_vcn.main.id
-  display_name   = "${var.project_name}-nsg-db-${var.environment}"
-
-  freeform_tags = local.common_tags
-}
-
-# Regra: PostgreSQL (5432) apenas de K8s
-resource "oci_core_network_security_group_security_rule" "db_postgres" {
-  network_security_group_id = oci_core_network_security_group.database.id
-  direction                 = "INGRESS"
-  protocol                  = "6"
-  source                    = oci_core_network_security_group.kubernetes.id
-  source_type               = "NETWORK_SECURITY_GROUP"
-  tcp_options {
-    destination_port_range {
-      min = 5432
-      max = 5432
-    }
-  }
-  description = "PostgreSQL from K8s only"
-}
-
-# Regra: SSH apenas do Bastion (para admin)
-resource "oci_core_network_security_group_security_rule" "db_ssh" {
-  network_security_group_id = oci_core_network_security_group.database.id
-  direction                 = "INGRESS"
-  protocol                  = "6"
-  source                    = oci_core_network_security_group.bastion.id
-  source_type               = "NETWORK_SECURITY_GROUP"
-  tcp_options {
-    destination_port_range {
-      min = 22
-      max = 22
-    }
-  }
-  description = "SSH from Bastion only"
-}
-
-# Regra de saída: DB pode fazer atualizações (apt, etc)
-resource "oci_core_network_security_group_security_rule" "db_egress" {
-  network_security_group_id = oci_core_network_security_group.database.id
-  direction                 = "EGRESS"
-  protocol                  = "all"
-  destination               = "0.0.0.0/0"
-  description               = "Outbound for updates"
 }
 
 # ============================================================================
