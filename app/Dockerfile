@@ -1,6 +1,5 @@
-FROM rust:alpine AS chef
+FROM lukemathwalker/cargo-chef:latest-rust-alpine AS chef
 RUN apk add --no-cache musl-dev gcc
-RUN cargo install cargo-chef --locked
 WORKDIR /app
 
 FROM chef AS planner
