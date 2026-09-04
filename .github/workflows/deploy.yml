@@ -54,7 +54,7 @@ jobs:
       - name: 🐳 Build e Push - API
         uses: docker/build-push-action@v6
         with:
-          context: ./app
+          context: ./app/DevSecOps_Audit_Engine
           file: ./app/Dockerfile
           platforms: linux/amd64,linux/arm64
           push: true
