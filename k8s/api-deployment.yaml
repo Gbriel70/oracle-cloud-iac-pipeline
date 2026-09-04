@@ -25,6 +25,13 @@ spec:
           env:
             - name: PORT
               value: "3000"
+            - name: RUST_LOG
+              value: "info"
+            - name: JWT_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: app-secrets
+                  key: JWT_SECRET
             - name: POSTGRES_HOST
               value: postgres
             - name: POSTGRES_PORT

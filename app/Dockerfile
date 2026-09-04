@@ -1,17 +1,29 @@
-FROM node:20.12.2-alpine3.19
-
+FROM rust:alpine AS chef
+RUN apk add --no-cache musl-dev gcc
+RUN cargo install cargo-chef --locked
 WORKDIR /app
 
-ENV NODE_ENV=production
+FROM chef AS planner
+COPY . .
+RUN cargo chef prepare --recipe-path recipe.json
 
-COPY package*.json ./
-RUN if [ -f package-lock.json ]; then npm ci --omit=dev --no-audit --no-fund; else npm install --omit=dev --no-audit --no-fund; fi
+FROM chef AS builder
+COPY --from=planner /app/recipe.json recipe.json
+RUN cargo chef cook --release --recipe-path recipe.json
 
 COPY . .
+RUN cargo build --release --bin DevSecOps_Audit_Engine
 
-RUN addgroup -S app && adduser -S app -G app && chown -R 1000:1000 /app
+FROM alpine:3.20
+
+RUN apk add --no-cache ca-certificates tzdata
+
+RUN addgroup -g 1000 -S appgroup && adduser -u 1000 -S appuser -G appgroup
+USER appuser
+
+WORKDIR /app
+COPY --from=builder /app/target/release/DevSecOps_Audit_Engine /app/devsecops-api
 
 EXPOSE 3000
-USER 1000
 
-CMD ["node", "server.js"]
+CMD ["/app/devsecops-api"]
