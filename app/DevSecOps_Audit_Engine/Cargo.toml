@@ -1,0 +1,18 @@
+[package]
+name = "DevSecOps_Audit_Engine"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+argon2 = "0.6.0"
+axum = "0.8.9"
+chrono = "0.4.45"
+dotenvy = "0.15.7"
+jsonwebtoken = "10.3.0"
+serde = "1.0.229"
+serde_json = "1.0.151"
+sqlx = "0.8.6"
+tokio = { version = "1", features = ["full"] }
+tracing = "0.1.44"
+tracing-subscriber = "0.3.23"
+uuid = "1.26.0"
